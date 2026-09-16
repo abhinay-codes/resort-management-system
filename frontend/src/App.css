@@ -1,0 +1,190 @@
+/* =========================================================
+   PARADISE RESORT
+   Application-level styling
+   ========================================================= */
+
+#root {
+  min-height: 100vh;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main {
+  flex: 1;
+}
+
+/* =========================================================
+   SHARED PAGE CONTAINER
+   ========================================================= */
+
+.page-container {
+  width: min(100% - 2rem, 1280px);
+  margin-inline: auto;
+}
+
+@media (min-width: 640px) {
+  .page-container {
+    width: min(100% - 3rem, 1280px);
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-container {
+    width: min(100% - 4rem, 1280px);
+  }
+}
+
+/* =========================================================
+   SHARED PAGE HEADER
+   ========================================================= */
+
+.page-header {
+  padding-block: 2.5rem 1.5rem;
+}
+
+.page-header h1 {
+  color: var(--foreground);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.page-header p {
+  color: var(--muted-foreground);
+  max-width: 680px;
+  margin-top: 0.625rem;
+  line-height: 1.6;
+}
+
+/* =========================================================
+   SHARED SECTION
+   ========================================================= */
+
+.section {
+  padding-block: 3rem;
+}
+
+.section-heading {
+  margin-bottom: 1.5rem;
+}
+
+.section-heading h2 {
+  color: var(--foreground);
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.section-heading p {
+  color: var(--muted-foreground);
+  margin-top: 0.5rem;
+  line-height: 1.6;
+}
+
+/* =========================================================
+   SHARED CARD
+   ========================================================= */
+
+.resort-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.resort-card-interactive {
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.resort-card-interactive:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+/* =========================================================
+   FORM HELPERS
+   ========================================================= */
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-label {
+  color: var(--foreground);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.form-help {
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.form-error {
+  color: var(--destructive);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+/* =========================================================
+   STATUS BADGES
+   ========================================================= */
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 1.75rem;
+  padding-inline: 0.625rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* =========================================================
+   ACCESSIBILITY
+   ========================================================= */
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
