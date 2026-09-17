@@ -11,6 +11,9 @@ export async function createHousekeepingTask(
 ) {
   return apiClient("/api/admin/housekeeping", {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
       roomId,
       employeeId,
@@ -27,6 +30,9 @@ export async function assignHousekeepingTask(
     `/api/admin/housekeeping/${taskId}/assign`,
     {
       method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         employeeId,
       }),

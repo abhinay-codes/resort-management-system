@@ -10,6 +10,10 @@ export async function checkOutBooking(
     {
       method: "POST",
 
+      headers: {
+        "Content-Type": "application/json",
+      },
+
       body: JSON.stringify({
         bookingId,
       }),
@@ -26,6 +30,10 @@ export async function employeeCheckOutBooking(
     "/api/employee/check-out",
     {
       method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+      },
 
       body: JSON.stringify({
         bookingId,

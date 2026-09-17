@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react"
 
 import { getRooms } from "@/services/roomService"
-import { updateRoomState } from "@/services/operations/roomStateService"
 
 const ROOM_STATUSES = [
   "AVAILABLE",
@@ -47,8 +46,6 @@ function AdminRooms() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
-  const [updatingRoomId, setUpdatingRoomId] = useState(null)
-
   async function loadRooms() {
     try {
       setLoading(true)
@@ -75,42 +72,6 @@ function AdminRooms() {
   useEffect(() => {
     loadRooms()
   }, [])
-
-  async function handleStatusChange(
-    roomId,
-    status
-  ) {
-    try {
-      setUpdatingRoomId(roomId)
-      setError("")
-
-      const updatedRoom =
-        await updateRoomState(
-          roomId,
-          status
-        )
-
-      setRooms((currentRooms) =>
-        currentRooms.map((room) =>
-          room.id === roomId
-            ? updatedRoom
-            : room
-        )
-      )
-    } catch (err) {
-      console.error(
-        "Failed to update room status:",
-        err
-      )
-
-      setError(
-        err?.message ||
-          "Unable to update room status."
-      )
-    } finally {
-      setUpdatingRoomId(null)
-    }
-  }
 
   if (loading) {
     return (
@@ -140,8 +101,7 @@ function AdminRooms() {
           </h1>
 
           <p className="mt-2 text-gray-600">
-            View rooms and manage their current
-            physical status.
+            View each room's current physical status.
           </p>
         </div>
 
@@ -221,9 +181,6 @@ function AdminRooms() {
                       Current Status
                     </th>
 
-                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      Change Status
-                    </th>
                   </tr>
                 </thead>
 
@@ -271,44 +228,6 @@ function AdminRooms() {
                         </span>
                       </td>
 
-                      <td className="px-6 py-5">
-                        <select
-                          value={
-                            room.status || ""
-                          }
-                          disabled={
-                            updatingRoomId ===
-                            room.id
-                          }
-                          onChange={(event) =>
-                            handleStatusChange(
-                              room.id,
-                              event.target.value
-                            )
-                          }
-                          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-black disabled:cursor-not-allowed disabled:bg-gray-100"
-                        >
-                          {ROOM_STATUSES.map(
-                            (status) => (
-                              <option
-                                key={status}
-                                value={status}
-                              >
-                                {formatStatus(
-                                  status
-                                )}
-                              </option>
-                            )
-                          )}
-                        </select>
-
-                        {updatingRoomId ===
-                          room.id && (
-                          <p className="mt-2 text-xs text-gray-500">
-                            Updating...
-                          </p>
-                        )}
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -316,15 +235,6 @@ function AdminRooms() {
             </div>
           )}
         </section>
-
-        {/* IMPORTANT NOTE */}
-
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
-          Room status changes are validated by
-          the backend room-state rules. An invalid
-          transition will be rejected rather than
-          directly modifying the room.
-        </div>
 
       </div>
     </main>

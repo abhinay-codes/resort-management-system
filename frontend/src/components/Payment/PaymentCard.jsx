@@ -18,6 +18,9 @@ import {
   retryPayment,
 } from "@/services/payment/paymentService"
 
+const TEST_PAYMENT_ENABLED =
+  import.meta.env.DEV
+
 function formatCurrency(amount) {
   return new Intl.NumberFormat(
     "en-IN",
@@ -665,26 +668,28 @@ function PaymentCard({ bookingId, bookingStatus }) {
           </div>
         )}
 
-        <div className="flex justify-end">
+        {TEST_PAYMENT_ENABLED && (
+          <div className="flex justify-end">
 
-          <Button
-            onClick={handlePayNow}
-            disabled={processing}
-          >
-            {processing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <CreditCard className="mr-2 h-4 w-4" />
-                Pay Now
-              </>
-            )}
-          </Button>
+            <Button
+              onClick={handlePayNow}
+              disabled={processing}
+            >
+              {processing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Pay Now
+                </>
+              )}
+            </Button>
 
-        </div>
+          </div>
+        )}
 
       </div>
     </section>

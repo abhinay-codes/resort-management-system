@@ -2,7 +2,6 @@ package com.paradiseresort.backend.controller;
 
 import com.paradiseresort.backend.dto.PaymentResponse;
 import com.paradiseresort.backend.dto.PaymentWebhookRequest;
-import com.paradiseresort.backend.dto.TestPaymentRequest;
 import com.paradiseresort.backend.service.PaymentService;
 
 import jakarta.validation.Valid;
@@ -66,33 +65,6 @@ public class PaymentController {
         PaymentResponse response =
                 paymentService.getCustomerPaymentByBooking(
                         bookingId,
-                        authentication.getName()
-                );
-
-        return ResponseEntity.ok(
-                response
-        );
-    }
-
-    /*
-     * ==========================================
-     * CUSTOMER TEST PAYMENT
-     * ==========================================
-     *
-     * Development/test gateway only.
-     */
-
-    @PostMapping("/{paymentId}/test")
-    public ResponseEntity<PaymentResponse> processTestPayment(
-            @PathVariable Long paymentId,
-            @Valid @RequestBody TestPaymentRequest request,
-            Authentication authentication
-    ) {
-
-        PaymentResponse response =
-                paymentService.processCustomerTestPayment(
-                        paymentId,
-                        request,
                         authentication.getName()
                 );
 

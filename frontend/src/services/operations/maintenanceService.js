@@ -12,6 +12,9 @@ export async function reportMaintenance(
     `/api/admin/maintenance/${roomId}`,
     {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         note,
       }),
@@ -42,6 +45,9 @@ export async function employeeReportMaintenance(
     `/api/employee/maintenance/${roomId}`,
     {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         note,
       }),

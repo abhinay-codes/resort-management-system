@@ -186,12 +186,14 @@ public class SecurityConfig {
                                 .hasRole("CUSTOMER")
 
                                 /*
-                                 * Payment APIs require authentication.
+                                 * Customer payment APIs require a customer
+                                 * account. Ownership is additionally
+                                 * validated by PaymentService.
                                  */
                                 .requestMatchers(
                                         "/api/payments/**"
                                 )
-                                .authenticated()
+                                .hasRole("CUSTOMER")
 
                                 /*
                                  * Everything else.

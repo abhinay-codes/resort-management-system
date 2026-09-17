@@ -1,6 +1,7 @@
 package com.paradiseresort.backend.payment;
 
 import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Profile;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -12,6 +13,7 @@ import java.util.UUID;
  * architecture without connecting to a real payment provider.
  */
 @Component
+@Profile("test-payment")
 public class TestPaymentGateway implements PaymentGateway {
 
     @Override

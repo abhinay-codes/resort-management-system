@@ -8,7 +8,7 @@ import {
 
 function ProtectedRoute({
   children,
-  role,
+  allowedRoles,
 }) {
 
   /*
@@ -47,14 +47,14 @@ function ProtectedRoute({
 
 
   /*
-   * If this route requires a specific role
-   * and the logged-in user's role is different,
+   * If this route requires one or more roles
+   * and the logged-in user's role is not allowed,
    * deny access.
    */
 
   if (
-    role &&
-    currentRole !== role
+    Array.isArray(allowedRoles) &&
+    !allowedRoles.includes(currentRole)
   ) {
 
     /*
