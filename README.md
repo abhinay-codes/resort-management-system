@@ -357,13 +357,12 @@ This project currently integrates a **simulated demo payment gateway** to demons
 - ✅ GitHub repository published
 - ✅ GHCR GitHub Actions workflow prepared
 - ⚠️ Demo payment only (Simulated)
-- ⚠️ Cloud deployment CI/CD not yet configured
-- ⚠️ Cloud deployment not yet configured
+- ✅ Cloud deployment configured
 
 ## 21. Future Improvements
 - Integration with a real payment gateway (Stripe/Razorpay).
 - Implementation of Flyway or Liquibase for robust database schema migrations.
 - Email and SMS notifications for booking confirmations and reminders.
 - Cloud Object Storage (e.g., AWS S3) for room imagery.
-- GitHub Actions CI/CD pipeline for automated testing and deployment.
+ 
 
