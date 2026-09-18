@@ -6,7 +6,6 @@ import { getRooms } from "@/services/roomService"
 
 import RoomCard from "./RoomCard"
 
-
 function FeaturedRooms() {
   const navigate = useNavigate()
 
@@ -20,7 +19,6 @@ function FeaturedRooms() {
     async function loadRooms() {
       try {
         setError("")
-
         const data = await getRooms()
 
         if (!cancelled) {
@@ -32,14 +30,8 @@ function FeaturedRooms() {
         }
       } catch (error) {
         if (!cancelled) {
-          console.error(
-            "Failed to load rooms:",
-            error
-          )
-
-          setError(
-            "Unable to load our featured rooms right now."
-          )
+          console.error("Failed to load rooms:", error)
+          setError("Unable to load our featured rooms right now.")
         }
       } finally {
         if (!cancelled) {
@@ -49,36 +41,30 @@ function FeaturedRooms() {
     }
 
     loadRooms()
-
     return () => {
       cancelled = true
     }
   }, [])
 
   return (
-    <section className="section bg-muted/35">
-      <div className="page-container">
+    <section className="bg-background py-24 sm:py-32">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
 
         {/* Section heading */}
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
           <div className="max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary sm:text-sm sm:tracking-[0.3em]">
-              Stay With Us
-            </p>
-
-            <h2 className="mt-3 text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
-              Featured Rooms
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight text-foreground">
+              Your Sanctuary Awaits
             </h2>
-
-            <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">
-              Choose the stay that fits your perfect getaway.
+            <p className="mt-4 text-lg text-muted-foreground font-light">
+              Discover our thoughtfully designed spaces, crafted for comfort, elegance, and uninterrupted relaxation.
             </p>
           </div>
 
           <button
             type="button"
             onClick={() => navigate("/rooms")}
-            className="group inline-flex w-fit items-center gap-2 text-sm font-semibold text-primary transition-colors hover:text-primary/80"
+            className="group inline-flex w-fit items-center gap-2 text-sm uppercase tracking-widest font-semibold text-primary transition-colors hover:text-primary/80"
           >
             View all rooms
             <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
@@ -87,11 +73,11 @@ function FeaturedRooms() {
 
         {/* Loading */}
         {loading && (
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((item) => (
               <div
                 key={item}
-                className="h-[30rem] animate-pulse rounded-3xl border border-border bg-card shadow-sm"
+                className="h-[32rem] animate-pulse rounded-sm border border-border bg-muted/50"
               />
             ))}
           </div>
@@ -99,41 +85,36 @@ function FeaturedRooms() {
 
         {/* Error */}
         {!loading && error && (
-          <div className="mt-10 rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
-            <p className="text-muted-foreground">
+          <div className="mt-10 border-t border-border bg-card py-16 text-center">
+            <p className="text-muted-foreground font-light text-lg">
               {error}
             </p>
           </div>
         )}
 
         {/* Empty */}
-        {!loading &&
-          !error &&
-          rooms.length === 0 && (
-            <div className="mt-10 rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
-              <p className="text-muted-foreground">
-                Our rooms are currently unavailable.
-              </p>
-            </div>
-          )}
+        {!loading && !error && rooms.length === 0 && (
+          <div className="mt-10 border-t border-border bg-card py-16 text-center">
+            <p className="text-muted-foreground font-light text-lg">
+              Our rooms are currently unavailable.
+            </p>
+          </div>
+        )}
 
         {/* Rooms */}
-        {!loading &&
-          !error &&
-          rooms.length > 0 && (
-            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {rooms.map((room) => (
-                <RoomCard
-                  key={room.id}
-                  room={room}
-                />
-              ))}
-            </div>
-          )}
+        {!loading && !error && rooms.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {rooms.map((room) => (
+              <RoomCard
+                key={room.id}
+                room={room}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )
 }
-
 
 export default FeaturedRooms

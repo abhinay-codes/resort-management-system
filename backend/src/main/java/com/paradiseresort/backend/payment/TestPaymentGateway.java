@@ -13,7 +13,6 @@ import java.util.UUID;
  * architecture without connecting to a real payment provider.
  */
 @Component
-@Profile("test-payment")
 public class TestPaymentGateway implements PaymentGateway {
 
     @Override

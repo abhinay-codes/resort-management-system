@@ -28,4 +28,9 @@ public interface HousekeepingTaskRepository
             Long roomId,
             List<HousekeepingStatus> statuses
     );
+
+    List<HousekeepingTask> findByRoom_IdAndStatusIn(
+            Long roomId,
+            List<HousekeepingStatus> statuses
+    );
 }

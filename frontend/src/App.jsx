@@ -14,11 +14,13 @@ import CustomerRegister from "@/pages/CustomerRegister"
 import CustomerDashboard from "@/pages/CustomerDashboard"
 import CustomerBookingDetails from "@/pages/CustomerBookingDetails"
 import CustomerPayments from "@/pages/CustomerPayments"
+import Notifications from "@/pages/customer/Notifications"
 
 import AdminBookings from "@/pages/AdminBookings"
 import AdminRooms from "@/pages/AdminRooms"
 import AdminEmployees from "@/pages/AdminEmployees"
 import AdminPayments from "@/pages/AdminPayments"
+import Analytics from "@/pages/admin/Analytics"
 
 import EmployeeHome from "@/pages/EmployeeHome"
 
@@ -121,6 +123,15 @@ function App() {
           }
         />
 
+        <Route
+          path="/customer/notifications"
+          element={
+            <ProtectedRoute allowedRoles={["CUSTOMER"]}>
+              <Notifications />
+            </ProtectedRoute>
+          }
+        />
+
 
         {/* =========================================
             ADMIN - BOOKINGS
@@ -173,6 +184,15 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["ADMIN"]}>
               <AdminPayments />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/analytics"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <Analytics />
             </ProtectedRoute>
           }
         />

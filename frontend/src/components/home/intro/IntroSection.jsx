@@ -1,33 +1,34 @@
-import { ArrowDown } from "lucide-react"
-
-
 function IntroSection() {
   return (
-    <section className="section bg-background">
-      <div className="page-container">
-        <div className="mx-auto max-w-4xl text-center">
-          <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-primary sm:text-sm sm:tracking-[0.3em]">
-            About Paradise Resort
+    <section className="bg-background py-24 sm:py-32 overflow-hidden">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8 flex flex-col md:flex-row items-center gap-16 lg:gap-24">
+        {/* Editorial Text */}
+        <div className="flex-1 max-w-xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-6">
+            More Than A Stay
           </p>
-
-          <h2 className="mt-4 text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
-            A place to slow down and reconnect
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-medium tracking-tight text-foreground mb-8 leading-tight">
+            Designed for moments <br className="hidden sm:block" /> that stay with you.
           </h2>
-
-          <p className="mx-auto mt-6 max-w-2xl text-pretty text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
-            Nestled in nature, Paradise Resort offers comfortable stays,
-            peaceful surroundings, and everything you need for a memorable
-            getaway.
+          <p className="text-lg leading-relaxed text-muted-foreground font-light mb-8">
+            Escape the noise and embrace tranquility. At Paradise Resort, we blend modern luxury with the breathtaking beauty of untouched nature, curating an environment where every detail caters to your absolute comfort.
           </p>
+          <div className="w-16 h-px bg-primary/30" />
+        </div>
 
-          <div className="mx-auto mt-8 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm">
-            <ArrowDown className="h-4 w-4" />
-          </div>
+        {/* Editorial Image */}
+        <div className="flex-1 w-full max-w-md relative">
+          {/* Subtle offset decorative box */}
+          <div className="absolute -inset-4 bg-muted/50 rounded-sm -z-10 translate-x-4 translate-y-4" />
+          <img
+            src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&q=80&w=1000"
+            alt="Luxury resort relaxation"
+            className="w-full aspect-[4/5] object-cover rounded-sm shadow-xl"
+          />
         </div>
       </div>
     </section>
   )
 }
-
 
 export default IntroSection

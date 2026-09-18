@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { Wrench } from "lucide-react"
 
 import {
   getEmployeeMaintenanceRooms,
@@ -6,36 +7,26 @@ import {
   employeeResolveMaintenance,
 } from "@/services/operations/maintenanceService"
 
+import { PageHeader } from "@/components/ui/PageHeader"
+import { StatusBadge } from "@/components/ui/StatusBadge"
+import { Button } from "@/components/ui/button"
+import { EmptyState } from "@/components/ui/EmptyState"
+
 function EmployeeMaintenance() {
   const [rooms, setRooms] = useState([])
-
   const [loading, setLoading] = useState(true)
-
   const [error, setError] = useState("")
-
   const [actionId, setActionId] = useState(null)
-
   const [notes, setNotes] = useState({})
 
   async function loadRooms() {
     try {
       setLoading(true)
       setError("")
-
-      const data =
-        await getEmployeeMaintenanceRooms()
-
-      setRooms(
-        Array.isArray(data)
-          ? data
-          : []
-      )
-
+      const data = await getEmployeeMaintenanceRooms()
+      setRooms(Array.isArray(data) ? data : [])
     } catch (err) {
-      setError(
-        err?.message ||
-        "Failed to load maintenance rooms."
-      )
+      setError(err?.message || "Failed to load maintenance rooms.")
     } finally {
       setLoading(false)
     }
@@ -46,13 +37,9 @@ function EmployeeMaintenance() {
   }, [])
 
   async function handleReport(roomId) {
-    const note =
-      notes[roomId]?.trim()
-
+    const note = notes[roomId]?.trim()
     if (!note) {
-      setError(
-        "Please enter a maintenance note."
-      )
+      setError("Please enter a maintenance note.")
       return
     }
 
@@ -60,30 +47,11 @@ function EmployeeMaintenance() {
       setActionId(roomId)
       setError("")
 
-      const updatedRoom =
-        await employeeReportMaintenance(
-          roomId,
-          note
-        )
-
-      setRooms((current) =>
-        current.map((room) =>
-          room.id === roomId
-            ? updatedRoom
-            : room
-        )
-      )
-
-      setNotes((current) => ({
-        ...current,
-        [roomId]: "",
-      }))
-
+      const updatedRoom = await employeeReportMaintenance(roomId, note)
+      setRooms((current) => current.map((r) => (r.id === roomId ? updatedRoom : r)))
+      setNotes((current) => ({ ...current, [roomId]: "" }))
     } catch (err) {
-      setError(
-        err?.message ||
-        "Failed to report maintenance."
-      )
+      setError(err?.message || "Failed to report maintenance.")
     } finally {
       setActionId(null)
     }
@@ -94,24 +62,10 @@ function EmployeeMaintenance() {
       setActionId(roomId)
       setError("")
 
-      const updatedRoom =
-        await employeeResolveMaintenance(
-          roomId
-        )
-
-      setRooms((current) =>
-        current.map((room) =>
-          room.id === roomId
-            ? updatedRoom
-            : room
-        )
-      )
-
+      const updatedRoom = await employeeResolveMaintenance(roomId)
+      setRooms((current) => current.map((r) => (r.id === roomId ? updatedRoom : r)))
     } catch (err) {
-      setError(
-        err?.message ||
-        "Failed to resolve maintenance."
-      )
+      setError(err?.message || "Failed to resolve maintenance.")
     } finally {
       setActionId(null)
     }
@@ -119,154 +73,116 @@ function EmployeeMaintenance() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-50 px-6 py-16">
-        <div className="mx-auto max-w-7xl">
-          <p className="text-gray-600">
-            Loading maintenance rooms...
-          </p>
+      <main className="min-h-screen bg-slate-50 px-6 py-16">
+        <div className="mx-auto max-w-7xl animate-pulse space-y-6">
+          <div className="h-10 w-64 bg-slate-200 rounded-lg" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="h-64 bg-slate-200 rounded-3xl" />
+            <div className="h-64 bg-slate-200 rounded-3xl" />
+            <div className="h-64 bg-slate-200 rounded-3xl" />
+          </div>
         </div>
       </main>
     )
   }
 
+  const maintenanceRooms = rooms.filter((r) => r.status === "MAINTENANCE")
+  const otherRooms = rooms.filter((r) => r.status !== "MAINTENANCE")
+
   return (
-    <main className="min-h-screen bg-gray-50 px-4 py-10 sm:px-6">
-
+    <main className="min-h-screen bg-slate-50 px-4 py-10 sm:px-6">
       <div className="mx-auto max-w-7xl">
-
-        <div className="mb-8">
-
-          <p className="text-sm font-semibold uppercase tracking-wider text-gray-500">
-            Resort Operations
-          </p>
-
-          <h1 className="mt-2 text-3xl font-bold">
-            Maintenance
-          </h1>
-
-          <p className="mt-2 text-gray-600">
-            Report and resolve room maintenance issues.
-          </p>
-
-        </div>
+        <PageHeader
+          eyebrow="Resort Operations"
+          title="Maintenance"
+          description="Report and resolve room maintenance issues."
+        />
 
         {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div className="mb-8 rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">
             {error}
           </div>
         )}
 
-        <section className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-
-          {rooms.map((room) => {
-
-            const isMaintenance =
-              room.status === "MAINTENANCE"
-
-            return (
-              <article
-                key={room.id}
-                className="rounded-2xl border bg-white p-6 shadow-sm"
-              >
-
-                <div className="flex items-start justify-between gap-4">
-
-                  <div>
-
-                    <h2 className="text-xl font-semibold">
-                      {room.name}
-                    </h2>
-
-                    <p className="mt-1 text-sm text-gray-500">
-                      Room #{room.id}
-                    </p>
-
-                  </div>
-
-                  <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold">
-                    {room.status}
-                  </span>
-
+        {rooms.length === 0 ? (
+          <EmptyState
+            icon={Wrench}
+            title="No rooms found"
+            description="There are currently no rooms available to manage."
+          />
+        ) : (
+          <div className="space-y-12">
+            {/* Rooms currently in maintenance */}
+            {maintenanceRooms.length > 0 && (
+              <section>
+                <h2 className="text-lg font-semibold text-slate-900 mb-4 ml-2">Needs Attention</h2>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {maintenanceRooms.map((room) => (
+                    <div key={room.id} className="rounded-3xl border border-orange-200 bg-orange-50/50 p-6 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-4">
+                          <StatusBadge status={room.status} />
+                          <span className="text-xs font-medium text-slate-400">Room #{room.id}</span>
+                        </div>
+                        <h3 className="text-xl font-semibold text-slate-900">{room.name}</h3>
+                        {room.description && (
+                          <p className="mt-2 text-sm text-slate-700">{room.description}</p>
+                        )}
+                      </div>
+                      <div className="mt-6 pt-6 border-t border-orange-200/50">
+                        <Button
+                          variant="outline"
+                          className="w-full bg-white hover:bg-orange-50"
+                          disabled={actionId === room.id}
+                          onClick={() => handleResolve(room.id)}
+                        >
+                          {actionId === room.id ? "Resolving..." : "Resolve Maintenance"}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
+              </section>
+            )}
 
-                {room.description && (
-                  <p className="mt-4 text-sm text-gray-600">
-                    {room.description}
-                  </p>
-                )}
-
-                {!isMaintenance ? (
-                  <div className="mt-5">
-
-                    <textarea
-                      value={notes[room.id] || ""}
-                      onChange={(event) =>
-                        setNotes((current) => ({
-                          ...current,
-                          [room.id]:
-                            event.target.value,
-                        }))
-                      }
-                      placeholder="Describe the maintenance issue..."
-                      rows={4}
-                      className="w-full rounded-lg border p-3 text-sm outline-none focus:border-gray-500"
-                    />
-
-                    <button
-                      type="button"
-                      disabled={
-                        actionId === room.id
-                      }
-                      onClick={() =>
-                        handleReport(room.id)
-                      }
-                      className="mt-3 w-full rounded-lg bg-black px-4 py-3 text-sm font-medium text-white disabled:opacity-50"
-                    >
-                      {actionId === room.id
-                        ? "Reporting..."
-                        : "Report Maintenance"}
-                    </button>
-
-                  </div>
-                ) : (
-                  <div className="mt-5">
-
-                    <p className="text-sm text-gray-600">
-                      This room is currently marked for maintenance.
-                    </p>
-
-                    <button
-                      type="button"
-                      disabled={
-                        actionId === room.id
-                      }
-                      onClick={() =>
-                        handleResolve(room.id)
-                      }
-                      className="mt-4 w-full rounded-lg border px-4 py-3 text-sm font-medium hover:bg-gray-100 disabled:opacity-50"
-                    >
-                      {actionId === room.id
-                        ? "Resolving..."
-                        : "Resolve Maintenance"}
-                    </button>
-
-                  </div>
-                )}
-
-              </article>
-            )
-          })}
-
-        </section>
-
-        {rooms.length === 0 && (
-          <div className="rounded-2xl border bg-white p-10 text-center text-gray-500">
-            No maintenance rooms found.
+            {/* Other rooms to report maintenance on */}
+            {otherRooms.length > 0 && (
+              <section>
+                <h2 className="text-lg font-semibold text-slate-900 mb-4 ml-2">Report Issue</h2>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {otherRooms.map((room) => (
+                    <div key={room.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-4">
+                          <StatusBadge status={room.status} />
+                          <span className="text-xs font-medium text-slate-400">Room #{room.id}</span>
+                        </div>
+                        <h3 className="text-lg font-semibold text-slate-900">{room.name}</h3>
+                      </div>
+                      <div className="mt-4">
+                        <textarea
+                          value={notes[room.id] || ""}
+                          onChange={(e) => setNotes((curr) => ({ ...curr, [room.id]: e.target.value }))}
+                          placeholder="Describe the issue..."
+                          rows={3}
+                          className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 resize-none mb-3"
+                        />
+                        <Button
+                          className="w-full"
+                          disabled={actionId === room.id}
+                          onClick={() => handleReport(room.id)}
+                        >
+                          {actionId === room.id ? "Reporting..." : "Report Maintenance"}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         )}
-
       </div>
-
     </main>
   )
 }

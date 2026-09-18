@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { ClipboardCheck, UserRound, XCircle } from "lucide-react"
+import { ClipboardCheck, UserRound, XCircle, Sparkles } from "lucide-react"
 
 import {
   getHousekeepingTasks,
@@ -9,26 +9,11 @@ import {
 } from "@/services/operations/housekeepingService"
 import { getRooms } from "@/services/roomService"
 import { getEmployees } from "@/services/operations/staffService"
+
 import { Button } from "@/components/ui/button"
-
-function formatStatus(status) {
-  return status?.replaceAll("_", " ") || "UNKNOWN"
-}
-
-function getStatusClasses(status) {
-  switch (status) {
-    case "PENDING":
-      return "bg-amber-100 text-amber-800"
-    case "IN_PROGRESS":
-      return "bg-blue-100 text-blue-800"
-    case "COMPLETED":
-      return "bg-emerald-100 text-emerald-800"
-    case "CANCELLED":
-      return "bg-muted text-muted-foreground"
-    default:
-      return "bg-muted text-foreground"
-  }
-}
+import { PageHeader } from "@/components/ui/PageHeader"
+import { StatusBadge } from "@/components/ui/StatusBadge"
+import { EmptyState } from "@/components/ui/EmptyState"
 
 function Housekeeping() {
   const [tasks, setTasks] = useState([])
@@ -92,7 +77,7 @@ function Housekeeping() {
   }
 
   async function handleAssign(taskId) {
-    const employeeId = window.prompt("Enter employee ID:")
+    const employeeId = window.prompt("Enter employee ID (numeric):")
     if (!employeeId) return
 
     try {
@@ -128,125 +113,143 @@ function Housekeeping() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-muted/30">
-        <div className="page-container py-16">
-          <div className="resort-card p-8 text-muted-foreground">Loading housekeeping...</div>
+      <main className="min-h-screen bg-slate-50 px-6 py-16">
+        <div className="mx-auto max-w-7xl animate-pulse space-y-8">
+          <div className="h-10 w-64 bg-slate-200 rounded-lg" />
+          <div className="h-48 bg-slate-200 rounded-3xl" />
+          <div className="h-[500px] bg-slate-200 rounded-3xl" />
         </div>
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-muted/30">
-      <div className="page-container py-10 sm:py-14">
-        <header className="page-header">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Resort Operations</p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Housekeeping</h1>
-            <p className="mt-3 text-muted-foreground">Create, assign and manage housekeeping tasks.</p>
-          </div>
-          <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <ClipboardCheck className="size-5" />
-          </div>
-        </header>
+    <main className="min-h-screen bg-slate-50 px-4 py-10 sm:px-6">
+      <div className="mx-auto max-w-7xl">
+        <PageHeader
+          eyebrow="Resort Operations"
+          title="Housekeeping Management"
+          description="Create, assign, and manage housekeeping tasks globally."
+        />
 
         {error && (
-          <div className="mt-6 rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
+          <div className="mb-8 rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">
             {error}
           </div>
         )}
 
-        <section className="resort-card mt-8 p-6 sm:p-7">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <ClipboardCheck className="size-5" />
+        <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm mb-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+              <ClipboardCheck className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="font-semibold">Create Housekeeping Task</h2>
-              <p className="text-sm text-muted-foreground">Assign a room and staff member.</p>
+              <h2 className="text-xl font-semibold text-slate-900">Create Task</h2>
+              <p className="text-sm text-slate-500">Assign a room and staff member.</p>
             </div>
           </div>
 
-          <form onSubmit={handleCreateTask} className="mt-6 grid gap-4 lg:grid-cols-3">
-            <select value={selectedRoom} onChange={(event) => setSelectedRoom(event.target.value)} className="min-h-11 rounded-xl border border-border bg-background px-3 text-sm">
+          <form onSubmit={handleCreateTask} className="grid gap-4 lg:grid-cols-4">
+            <select
+              value={selectedRoom}
+              onChange={(e) => setSelectedRoom(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+            >
               <option value="">Select room</option>
               {rooms.filter((room) => room.status === "AVAILABLE" || room.status === "CLEANING").map((room) => (
                 <option key={room.id} value={room.id}>{room.name} — {room.status}</option>
               ))}
             </select>
 
-            <select value={selectedEmployee} onChange={(event) => setSelectedEmployee(event.target.value)} className="min-h-11 rounded-xl border border-border bg-background px-3 text-sm">
+            <select
+              value={selectedEmployee}
+              onChange={(e) => setSelectedEmployee(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+            >
               <option value="">Select employee</option>
               {employees.map((employee) => (
                 <option key={employee.id} value={employee.id}>{employee.name}</option>
               ))}
             </select>
 
-            <input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Notes (optional)" className="min-h-11 rounded-xl border border-border bg-background px-3 text-sm" />
+            <input
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Notes (optional)"
+              className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+            />
 
-            <Button type="submit" disabled={creating} className="min-h-11 rounded-xl lg:col-span-3">
+            <Button type="submit" disabled={creating} className="w-full min-h-[46px]">
               {creating ? "Creating..." : "Create Task"}
             </Button>
           </form>
         </section>
 
-        <section className="resort-card mt-6 overflow-hidden">
-          <div className="border-b border-border/60 p-6">
-            <h2 className="text-xl font-semibold">Task Queue</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{tasks.length} task(s) in the system.</p>
-          </div>
+        {tasks.length === 0 ? (
+          <EmptyState
+            icon={Sparkles}
+            title="No housekeeping tasks"
+            description="All rooms are clean or no tasks have been created yet."
+          />
+        ) : (
+          <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-100 px-6 py-5 bg-slate-50/50">
+              <h2 className="text-xl font-semibold text-slate-900">Task Queue</h2>
+              <p className="mt-1 text-sm text-slate-500">{tasks.length} task(s) in the system.</p>
+            </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px]">
-              <thead className="bg-muted/40">
-                <tr>
-                  {["Room", "Employee", "Status", "Notes", "Actions"].map((heading) => (
-                    <th key={heading} className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">{heading}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.map((task) => (
-                  <tr key={task.id} className="border-t border-border/60">
-                    <td className="px-5 py-4">
-                      <p className="font-medium">{task.roomName}</p>
-                      <p className="text-xs text-muted-foreground">Room #{task.roomId}</p>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="inline-flex items-center gap-2 text-sm">
-                        <UserRound className="size-3.5 text-muted-foreground" />
-                        {task.employeeName || "Unassigned"}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className={`status-badge ${getStatusClasses(task.status)}`}>{formatStatus(task.status)}</span>
-                    </td>
-                    <td className="max-w-xs px-5 py-4 text-sm text-muted-foreground">{task.notes || "—"}</td>
-                    <td className="px-5 py-4">
-                      {task.status !== "COMPLETED" && task.status !== "CANCELLED" ? (
-                        <div className="flex flex-wrap gap-2">
-                          <Button variant="outline" size="sm" disabled={actionId === task.id} onClick={() => handleAssign(task.id)}>
-                            Assign
-                          </Button>
-                          <Button variant="outline" size="sm" disabled={actionId === task.id} onClick={() => handleCancel(task.id)}>
-                            <XCircle className="size-3.5" />
-                            Cancel
-                          </Button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">No actions</span>
-                      )}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px] text-left">
+                <thead className="bg-slate-50/50 border-b border-slate-100">
+                  <tr>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Room</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Employee</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Notes</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {tasks.length === 0 && (
-              <div className="p-12 text-center text-sm text-muted-foreground">No housekeeping tasks found.</div>
-            )}
-          </div>
-        </section>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {tasks.map((task) => (
+                    <tr key={task.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-5">
+                        <p className="font-semibold text-slate-900">{task.roomName}</p>
+                        <p className="text-xs text-slate-500 mt-1">Room #{task.roomId}</p>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className="inline-flex items-center gap-2 text-sm text-slate-700">
+                          <UserRound className="h-4 w-4 text-slate-400" />
+                          {task.employeeName || "Unassigned"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5">
+                        <StatusBadge status={task.status} />
+                      </td>
+                      <td className="px-6 py-5 max-w-xs text-sm text-slate-600">
+                        {task.notes || "—"}
+                      </td>
+                      <td className="px-6 py-5 text-right">
+                        {task.status !== "COMPLETED" && task.status !== "CANCELLED" ? (
+                          <div className="flex justify-end gap-2">
+                            <Button variant="outline" size="sm" className="bg-white" disabled={actionId === task.id} onClick={() => handleAssign(task.id)}>
+                              Assign
+                            </Button>
+                            <Button variant="outline" size="sm" className="bg-white text-red-600 border-red-200 hover:bg-red-50" disabled={actionId === task.id} onClick={() => handleCancel(task.id)}>
+                              <XCircle className="h-3.5 w-3.5 mr-1.5" />
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400">No actions</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
       </div>
     </main>
   )

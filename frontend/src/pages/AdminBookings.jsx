@@ -1,20 +1,21 @@
 import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
+import { CalendarDays, Eye, RefreshCcw } from "lucide-react"
 
 import {
   getAdminBookings,
   updateAdminBookingStatus,
 } from "@/services/admin/adminBookingService"
+import { checkInBooking } from "@/services/operations/checkInService"
+import { checkOutBooking } from "@/services/operations/checkOutService"
 
-import {
-  checkInBooking,
-} from "@/services/operations/checkInService"
-
-import {
-  checkOutBooking,
-} from "@/services/operations/checkOutService"
+import { PageHeader } from "@/components/ui/PageHeader"
+import { StatusBadge } from "@/components/ui/StatusBadge"
+import { EmptyState } from "@/components/ui/EmptyState"
+import { Button } from "@/components/ui/button"
 
 export default function AdminBookings() {
+  const navigate = useNavigate()
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -28,16 +29,11 @@ export default function AdminBookings() {
     try {
       setLoading(true)
       setError("")
-
       const data = await getAdminBookings()
-
       setBookings(Array.isArray(data) ? data : [])
     } catch (err) {
       console.error("Failed to load admin bookings:", err)
-
-      setError(
-        err?.message || "Unable to load bookings."
-      )
+      setError(err?.message || "Unable to load bookings.")
     } finally {
       setLoading(false)
     }
@@ -49,7 +45,6 @@ export default function AdminBookings() {
       setError("")
 
       let updatedBooking
-
       if (status === "CHECKED_IN") {
         updatedBooking = await checkInBooking(id)
       } else if (status === "CHECKED_OUT") {
@@ -58,21 +53,12 @@ export default function AdminBookings() {
         updatedBooking = await updateAdminBookingStatus(id, status)
       }
 
-      setBookings((currentBookings) =>
-        currentBookings.map((booking) =>
-          booking.id === id ? updatedBooking : booking
-        )
+      setBookings((current) =>
+        current.map((b) => (b.id === id ? updatedBooking : b))
       )
     } catch (err) {
-      console.error(
-        "Failed to update booking status:",
-        err
-      )
-
-      setError(
-        err?.message ||
-          "Unable to update booking status."
-      )
+      console.error("Failed to update booking status:", err)
+      setError(err?.message || "Unable to update booking status.")
     } finally {
       setUpdatingId(null)
     }
@@ -80,236 +66,159 @@ export default function AdminBookings() {
 
   if (loading) {
     return (
-      <div className="min-h-screen p-6">
-        <div className="mx-auto max-w-7xl">
-          <p className="text-muted-foreground">
-            Loading bookings...
-          </p>
+      <main className="min-h-screen bg-slate-50 px-6 py-16">
+        <div className="mx-auto max-w-7xl animate-pulse space-y-8">
+          <div className="h-10 w-64 bg-slate-200 rounded-lg" />
+          <div className="h-[500px] bg-slate-200 rounded-3xl" />
         </div>
-      </div>
+      </main>
     )
   }
 
   return (
-    <div className="min-h-screen p-6">
-      <div className="mx-auto max-w-7xl space-y-6">
-
-        <div>
-          <h1 className="text-3xl font-bold">
-            Manage Bookings
-          </h1>
-
-          <p className="mt-2 text-muted-foreground">
-            View and manage all resort bookings.
-          </p>
-        </div>
+    <main className="min-h-screen bg-slate-50 px-4 py-10 sm:px-6">
+      <div className="mx-auto max-w-7xl">
+        <PageHeader
+          eyebrow="Resort Administration"
+          title="Manage Bookings"
+          description="View and manage all resort bookings globally."
+          action={
+            <Button variant="outline" onClick={loadBookings} className="bg-white">
+              <RefreshCcw className="mr-2 h-4 w-4" /> Refresh
+            </Button>
+          }
+        />
 
         {error && (
-          <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-red-700">
+          <div className="mb-8 rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">
             {error}
           </div>
         )}
 
         {bookings.length === 0 ? (
-          <div className="rounded-xl border p-8 text-center">
-            <p className="text-muted-foreground">
-              No bookings found.
-            </p>
-          </div>
+          <EmptyState
+            icon={CalendarDays}
+            title="No bookings found"
+            description="There are currently no bookings in the system."
+          />
         ) : (
-          <div className="overflow-x-auto rounded-xl border">
-            <table className="w-full min-w-[1000px] text-sm">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-3 text-left">
-                    ID
-                  </th>
-
-                  <th className="px-4 py-3 text-left">
-                    Guest
-                  </th>
-
-                  <th className="px-4 py-3 text-left">
-                    Room
-                  </th>
-
-                  <th className="px-4 py-3 text-left">
-                    Check-in
-                  </th>
-
-                  <th className="px-4 py-3 text-left">
-                    Check-out
-                  </th>
-
-                  <th className="px-4 py-3 text-left">
-                    Guests
-                  </th>
-
-                  <th className="px-4 py-3 text-left">
-                    Amount
-                  </th>
-
-                  <th className="px-4 py-3 text-left">
-                    Status
-                  </th>
-
-                  <th className="px-4 py-3 text-left">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {bookings.map((booking) => (
-                  <tr
-                    key={booking.id}
-                    className="border-b last:border-0"
-                  >
-                    <td className="px-4 py-3 font-medium">
-                      #{booking.id}
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <div>
-                        <p className="font-medium">
-                          {booking.guestName}
-                        </p>
-
-                        <p className="text-xs text-muted-foreground">
-                          {booking.email}
-                        </p>
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-3">
-                      {booking.room?.name || "Room"}
-                    </td>
-
-                    <td className="px-4 py-3">
-                      {booking.checkIn}
-                    </td>
-
-                    <td className="px-4 py-3">
-                      {booking.checkOut}
-                    </td>
-
-                    <td className="px-4 py-3">
-                      {booking.guests}
-                    </td>
-
-                    <td className="px-4 py-3">
-                      ₹{booking.totalAmount}
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <span className="rounded-full border px-3 py-1 text-xs">
-                        {booking.status}
-                      </span>
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-2">
-
-                        {/* ==================================
-                            ADMIN / EMPLOYEE MANAGEMENT VIEW
-                            ==================================
-                            
-                            /booking/:id is the public
-                            view-only booking page.
-
-                            /bookings/:id is the protected
-                            admin/employee management page.
-                        */}
-                        <Link
-                          to={`/bookings/${booking.id}`}
-                          className="rounded-lg border px-3 py-2 hover:bg-muted"
-                        >
-                          View
-                        </Link>
-
-                        {booking.status === "PENDING" && (
-                          <>
-                            <button
-                              type="button"
-                              disabled={
-                                updatingId === booking.id
-                              }
-                              onClick={() =>
-                                handleStatusChange(
-                                  booking.id,
-                                  "CONFIRMED"
-                                )
-                              }
-                              className="rounded-lg border px-3 py-2 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {updatingId === booking.id
-                                ? "Updating..."
-                                : "Confirm"}
-                            </button>
-
-                            <button
-                              type="button"
-                              disabled={
-                                updatingId === booking.id
-                              }
-                              onClick={() =>
-                                handleStatusChange(
-                                  booking.id,
-                                  "CANCELLED"
-                                )
-                              }
-                              className="rounded-lg border px-3 py-2 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        )}
-
-                        {booking.status === "CONFIRMED" && (
-                          <button
-                            type="button"
-                            disabled={
-                              updatingId === booking.id
-                            }
-                            onClick={() =>
-                              handleStatusChange(
-                                booking.id,
-                                "CHECKED_IN"
-                              )
-                            }
-                            className="rounded-lg border px-3 py-2 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            Check In
-                          </button>
-                        )}
-
-                        {booking.status === "CHECKED_IN" && (
-                          <button
-                            type="button"
-                            disabled={
-                              updatingId === booking.id
-                            }
-                            onClick={() =>
-                              handleStatusChange(
-                                booking.id,
-                                "CHECKED_OUT"
-                              )
-                            }
-                            className="rounded-lg border px-3 py-2 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            Check Out
-                          </button>
-                        )}
-
-                      </div>
-                    </td>
+          <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+            {/* Desktop View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="min-w-[1000px] w-full text-left">
+                <thead className="bg-slate-50/50 border-b border-slate-100">
+                  <tr>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">ID</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Guest</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Room</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Check-in</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Check-out</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Amount</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {bookings.map((booking) => (
+                    <tr key={booking.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-5 font-semibold text-slate-900">#{booking.id}</td>
+                      <td className="px-6 py-5">
+                        <p className="font-medium text-slate-900">{booking.guestName}</p>
+                        <p className="text-xs text-slate-500">{booking.email}</p>
+                      </td>
+                      <td className="px-6 py-5">
+                        <p className="font-medium text-slate-900">{booking.room?.name || "Room"}</p>
+                        <p className="text-xs text-slate-500">{booking.guests} guests</p>
+                      </td>
+                      <td className="px-6 py-5 text-sm text-slate-600">{booking.checkIn}</td>
+                      <td className="px-6 py-5 text-sm text-slate-600">{booking.checkOut}</td>
+                      <td className="px-6 py-5 font-medium text-slate-900">₹{Number(booking.totalAmount).toLocaleString("en-IN")}</td>
+                      <td className="px-6 py-5">
+                        <StatusBadge status={booking.status} />
+                      </td>
+                      <td className="px-6 py-5 text-right">
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          <Link to={`/bookings/${booking.id}`}>
+                            <Button variant="outline" size="sm" className="bg-white">View</Button>
+                          </Link>
+
+                          {booking.status === "PENDING" && (
+                            <>
+                              <Button size="sm" disabled={updatingId === booking.id} onClick={() => handleStatusChange(booking.id, "CONFIRMED")}>
+                                Confirm
+                              </Button>
+                              <Button variant="outline" size="sm" disabled={updatingId === booking.id} onClick={() => handleStatusChange(booking.id, "CANCELLED")}>
+                                Cancel
+                              </Button>
+                            </>
+                          )}
+
+                          {booking.status === "CONFIRMED" && (
+                            <Button size="sm" disabled={updatingId === booking.id} onClick={() => handleStatusChange(booking.id, "CHECKED_IN")}>
+                              Check In
+                            </Button>
+                          )}
+
+                          {booking.status === "CHECKED_IN" && (
+                            <Button size="sm" disabled={updatingId === booking.id} onClick={() => handleStatusChange(booking.id, "CHECKED_OUT")}>
+                              Check Out
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile View */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {bookings.map((booking) => (
+                <div key={booking.id} className="p-5 flex flex-col gap-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-xs font-semibold text-slate-500 mb-1 block">#{booking.id}</span>
+                      <h3 className="font-semibold text-slate-900">{booking.guestName}</h3>
+                      <p className="text-sm text-slate-500">{booking.room?.name || "Room"}</p>
+                    </div>
+                    <StatusBadge status={booking.status} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-sm bg-slate-50 p-3 rounded-xl">
+                    <div>
+                      <p className="text-slate-500 text-xs uppercase tracking-wider">Check In</p>
+                      <p className="font-medium text-slate-900">{booking.checkIn}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500 text-xs uppercase tracking-wider">Check Out</p>
+                      <p className="font-medium text-slate-900">{booking.checkOut}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <Button variant="outline" size="sm" onClick={() => navigate(`/bookings/${booking.id}`)} className="flex-1 bg-white">
+                      View
+                    </Button>
+
+                    {booking.status === "PENDING" && (
+                      <Button size="sm" disabled={updatingId === booking.id} onClick={() => handleStatusChange(booking.id, "CONFIRMED")} className="flex-1">Confirm</Button>
+                    )}
+
+                    {booking.status === "CONFIRMED" && (
+                      <Button size="sm" disabled={updatingId === booking.id} onClick={() => handleStatusChange(booking.id, "CHECKED_IN")} className="flex-1">Check In</Button>
+                    )}
+
+                    {booking.status === "CHECKED_IN" && (
+                      <Button size="sm" disabled={updatingId === booking.id} onClick={() => handleStatusChange(booking.id, "CHECKED_OUT")} className="flex-1">Check Out</Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
         )}
       </div>
-    </div>
+    </main>
   )
 }

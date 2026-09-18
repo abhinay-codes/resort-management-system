@@ -1,72 +1,32 @@
 import { useEffect, useState } from "react"
-
-import {
-  CheckCircle2,
-  Clock3,
-  CreditCard,
-  Loader2,
-  RefreshCw,
-  XCircle,
-} from "lucide-react"
+import { CheckCircle2, Clock, CreditCard, Loader2, RefreshCw, XCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-
 import {
   createPayment,
   getPaymentByBooking,
   processTestPayment,
   retryPayment,
 } from "@/services/payment/paymentService"
-
-const TEST_PAYMENT_ENABLED =
-  import.meta.env.DEV
-
-function formatCurrency(amount) {
-  return new Intl.NumberFormat(
-    "en-IN",
-    {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }
-  ).format(amount ?? 0)
-}
+import { formatCurrency } from "@/utils/currency"
 
 function formatDate(date) {
-  if (!date) {
-    return "—"
-  }
-
-  return new Date(date).toLocaleString(
-    "en-IN",
-    {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }
-  )
+  if (!date) return "—"
+  return new Date(date).toLocaleString("en-US", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  })
 }
 
 function PaymentCard({ bookingId, bookingStatus }) {
-  const [payment, setPayment] =
-    useState(null)
+  const [payment, setPayment] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [processing, setProcessing] = useState(false)
+  const [error, setError] = useState("")
 
-  const [loading, setLoading] =
-    useState(true)
-
-  const [processing, setProcessing] =
-    useState(false)
-
-  const [error, setError] =
-    useState("")
-
-  /*
-   * ==========================================
-   * LOAD PAYMENT
-   * ==========================================
-   */
   useEffect(() => {
     let mounted = true
 
@@ -79,620 +39,216 @@ function PaymentCard({ bookingId, bookingStatus }) {
       try {
         setLoading(true)
         setError("")
-
-        const data =
-          await getPaymentByBooking(
-            bookingId
-          )
-
-        if (mounted) {
-          setPayment(data)
-        }
+        const data = await getPaymentByBooking(bookingId)
+        if (mounted) setPayment(data)
       } catch (err) {
-        console.error(
-          "Failed to load payment:",
-          err
-        )
-
-        if (mounted) {
-          setError(
-            err?.message ||
-              "Unable to load payment information."
-          )
-        }
+        console.error("Failed to load payment:", err)
+        if (mounted) setError(err?.message || "Unable to load payment information.")
       } finally {
-        if (mounted) {
-          setLoading(false)
-        }
+        if (mounted) setLoading(false)
       }
     }
 
     loadPayment()
-
-    return () => {
-      mounted = false
-    }
+    return () => { mounted = false }
   }, [bookingId])
 
-  /*
-   * ==========================================
-   * CREATE PAYMENT
-   * ==========================================
-   *
-   * Normally the backend already creates the
-   * payment with the booking.
-   *
-   * This remains as a safe fallback because
-   * createPayment() is idempotent.
-   */
   async function handleCreatePayment() {
-    if (processing || bookingStatus === "CANCELLED") {
-      return
-    }
-
+    if (processing || bookingStatus === "CANCELLED") return
     try {
       setProcessing(true)
       setError("")
-
-      const data =
-        await createPayment(
-          bookingId
-        )
-
+      const data = await createPayment(bookingId)
       setPayment(data)
     } catch (err) {
-      console.error(
-        "Failed to create payment:",
-        err
-      )
-
-      setError(
-        err?.message ||
-          "Unable to start payment."
-      )
+      setError(err?.message || "Unable to start payment.")
     } finally {
       setProcessing(false)
     }
   }
 
-  /*
-   * ==========================================
-   * TEST PAYMENT
-   * ==========================================
-   *
-   * Development payment simulation.
-   *
-   * true:
-   * PENDING -> SUCCESS
-   *
-   * The backend then confirms the booking.
-   */
   async function handlePayNow() {
-    if (
-      !payment?.id ||
-      processing ||
-      bookingStatus === "CANCELLED"
-    ) {
-      return
-    }
-
+    if (!payment?.id || processing || bookingStatus === "CANCELLED") return
     try {
       setProcessing(true)
       setError("")
-
-      const data =
-        await processTestPayment(
-          payment.id,
-          true
-        )
-
+      const data = await processTestPayment(payment.id, true)
       setPayment(data)
     } catch (err) {
-      console.error(
-        "Failed to process payment:",
-        err
-      )
-
-      setError(
-        err?.message ||
-          "Unable to process payment."
-      )
+      setError(err?.message || "Unable to process payment.")
     } finally {
       setProcessing(false)
     }
   }
 
-  /*
-   * ==========================================
-   * RETRY PAYMENT
-   * ==========================================
-   */
   async function handleRetry() {
-    if (
-      !payment?.id ||
-      processing ||
-      bookingStatus === "CANCELLED"
-    ) {
-      return
-    }
-
+    if (!payment?.id || processing || bookingStatus === "CANCELLED") return
     try {
       setProcessing(true)
       setError("")
-
-      const data =
-        await retryPayment(
-          payment.id
-        )
-
+      const data = await retryPayment(payment.id)
       setPayment(data)
     } catch (err) {
-      console.error(
-        "Failed to retry payment:",
-        err
-      )
-
-      setError(
-        err?.message ||
-          "Unable to retry payment."
-      )
+      setError(err?.message || "Unable to retry payment.")
     } finally {
       setProcessing(false)
     }
   }
 
-  /*
-   * ==========================================
-   * LOADING
-   * ==========================================
-   */
   if (loading) {
     return (
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-center gap-3">
-          <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
-
-          <p className="text-sm text-slate-600">
-            Loading payment information...
-          </p>
-        </div>
-      </section>
+      <div className="border border-border/60 bg-card rounded-sm p-8 shadow-sm flex items-center justify-center min-h-[200px]">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
     )
   }
 
-  /*
-   * ==========================================
-   * ERROR WITHOUT PAYMENT
-   * ==========================================
-   */
   if (error && !payment) {
     return (
-      <section className="rounded-3xl border border-red-200 bg-white p-6 shadow-sm">
-        <div className="flex gap-4">
-          <XCircle className="mt-0.5 h-6 w-6 shrink-0 text-red-500" />
-
-          <div>
-            <h2 className="font-semibold text-slate-900">
-              Payment unavailable
-            </h2>
-
-            <p className="mt-1 text-sm text-slate-600">
-              {error}
-            </p>
-          </div>
-        </div>
-      </section>
+      <div className="border border-destructive/20 bg-destructive/5 rounded-sm p-8">
+        <h2 className="text-lg font-medium text-destructive mb-2">Payment Unavailable</h2>
+        <p className="text-sm text-destructive/80">{error}</p>
+      </div>
     )
   }
 
-  /*
-   * ==========================================
-   * NO PAYMENT
-   * ==========================================
-   */
   if (!payment) {
     if (bookingStatus === "CANCELLED") {
       return (
-        <section className="rounded-3xl border border-slate-200 bg-white p-6">
-          <div className="flex gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100">
-              <XCircle className="h-6 w-6 text-slate-600" />
-            </div>
-
-            <div>
-              <p className="text-sm font-medium uppercase tracking-wide text-slate-500">
-                Booking Cancelled
-              </p>
-
-              <h2 className="mt-1 text-xl font-semibold text-slate-900">
-                No payment is required
-              </h2>
-
-              <p className="mt-2 text-sm text-slate-600">
-                This booking has been cancelled, so payment cannot be started.
-              </p>
-            </div>
-          </div>
-        </section>
+        <div className="border border-border/60 bg-muted/30 rounded-sm p-8">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Booking Cancelled</p>
+          <h2 className="text-xl font-medium mb-2">No payment required</h2>
+          <p className="text-sm text-muted-foreground font-light">This booking has been cancelled, so payment cannot be started.</p>
+        </div>
       )
     }
 
     return (
-      <section className="rounded-3xl border border-amber-200 bg-white p-6">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-
-          <div className="flex gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50">
-              <CreditCard className="h-6 w-6 text-amber-600" />
-            </div>
-
-            <div>
-              <p className="text-sm font-medium uppercase tracking-wide text-amber-600">
-                Payment Required
-              </p>
-
-              <h2 className="mt-1 text-xl font-semibold text-slate-900">
-                Complete your payment
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-600">
-                Your booking is waiting for payment.
-              </p>
-            </div>
+      <div className="border border-border/60 bg-card rounded-sm p-8 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">Action Required</p>
+            <h2 className="text-2xl font-medium mb-1">Complete your payment</h2>
+            <p className="text-muted-foreground font-light text-sm">Your reservation is waiting for payment.</p>
           </div>
-
-          <Button
-            onClick={handleCreatePayment}
-            disabled={processing}
-          >
-            {processing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Starting...
-              </>
-            ) : (
-              <>
-                <CreditCard className="mr-2 h-4 w-4" />
-                Start Payment
-              </>
-            )}
+          <Button onClick={handleCreatePayment} disabled={processing} className="rounded-sm uppercase text-xs tracking-widest font-semibold px-6 py-6">
+            {processing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
+            Start Payment
           </Button>
         </div>
-
-        {error && (
-          <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
-      </section>
+        {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
+      </div>
     )
   }
 
-  /*
-   * ==========================================
-   * CANCELLED BOOKING
-   * ==========================================
-   *
-   * A cancelled booking must never expose
-   * payment or retry actions.
-   */
   if (bookingStatus === "CANCELLED") {
     return (
-      <section className="rounded-3xl border border-slate-200 bg-white p-6">
-        <div className="flex gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100">
-            <XCircle className="h-6 w-6 text-slate-600" />
-          </div>
+      <div className="border border-border/60 bg-muted/30 rounded-sm p-8">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Booking Cancelled</p>
+        <h2 className="text-xl font-medium mb-4">Payment actions unavailable</h2>
+        <p className="text-sm text-muted-foreground font-light mb-4">This booking has been cancelled.</p>
 
-          <div className="flex-1">
-            <p className="text-sm font-medium uppercase tracking-wide text-slate-500">
-              Booking Cancelled
-            </p>
-
-            <h2 className="mt-1 text-xl font-semibold text-slate-900">
-              Payment actions are unavailable
-            </h2>
-
-            <p className="mt-2 text-sm text-slate-600">
-              This booking has been cancelled. No further payment or retry action can be performed.
-            </p>
-
-            {payment.status === "REFUNDED" && (
-              <div className="mt-5 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                The payment has been refunded.
-              </div>
-            )}
-
-            {payment.status === "PENDING" && (
-              <div className="mt-5 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                The existing payment record is still pending, but it cannot be used to confirm this cancelled booking.
-              </div>
-            )}
-
-            {payment.status === "FAILED" && (
-              <div className="mt-5 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                The previous payment failed and cannot be retried for this cancelled booking.
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
+        {payment.status === "REFUNDED" && <p className="text-sm text-primary">Payment has been refunded.</p>}
+        {payment.status === "PENDING" && <p className="text-sm text-muted-foreground">The existing payment is pending, but cannot be completed.</p>}
+        {payment.status === "FAILED" && <p className="text-sm text-muted-foreground">The previous payment failed.</p>}
+      </div>
     )
   }
 
-  /*
-   * ==========================================
-   * SUCCESS
-   * ==========================================
-   */
   if (payment.status === "SUCCESS") {
     return (
-      <section className="rounded-3xl border border-emerald-200 bg-white p-6 shadow-sm">
-
-        <div className="flex gap-4">
-
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-50">
-            <CheckCircle2 className="h-6 w-6 text-emerald-600" />
-          </div>
-
-          <div className="flex-1">
-
-            <div className="flex flex-wrap items-center justify-between gap-3">
-
-              <div>
-                <p className="text-sm font-medium uppercase tracking-wide text-emerald-600">
-                  Payment Successful
-                </p>
-
-                <h2 className="mt-1 text-xl font-semibold text-slate-900">
-                  Your payment is complete
-                </h2>
-              </div>
-
-              <p className="text-xl font-semibold text-slate-900">
-                {formatCurrency(
-                  payment.amount
-                )}
-              </p>
-
-            </div>
-
-            <div className="mt-5 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2">
-
-              <div>
-                <p className="text-xs uppercase tracking-wide text-slate-400">
-                  Payment Reference
-                </p>
-
-                <p className="mt-1 break-all text-sm font-medium text-slate-800">
-                  {payment.paymentReference ||
-                    "—"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs uppercase tracking-wide text-slate-400">
-                  Paid On
-                </p>
-
-                <p className="mt-1 text-sm font-medium text-slate-800">
-                  {formatDate(
-                    payment.updatedAt
-                  )}
-                </p>
-              </div>
-
-            </div>
-
-            <div className="mt-5 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-              Your booking has been confirmed.
-            </div>
-
+      <div className="border border-border/60 bg-card rounded-sm p-8 shadow-sm">
+        <div className="flex items-start gap-4 mb-8">
+          <CheckCircle2 className="h-6 w-6 text-primary mt-1" />
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-1">Payment Successful</p>
+            <h2 className="text-2xl font-medium">Your payment is complete</h2>
           </div>
         </div>
-      </section>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-6 border-t border-border/50">
+          <div>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Amount Paid</p>
+            <p className="font-medium text-lg">{formatCurrency(payment.amount)}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Reference</p>
+            <p className="font-medium text-sm break-all">{payment.paymentReference || "—"}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Date</p>
+            <p className="font-medium text-sm">{formatDate(payment.updatedAt)}</p>
+          </div>
+        </div>
+      </div>
     )
   }
 
-  /*
-   * ==========================================
-   * REFUNDED
-   * ==========================================
-   */
   if (payment.status === "REFUNDED") {
     return (
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-
-        <div className="flex gap-4">
-
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-100">
-            <RefreshCw className="h-6 w-6 text-slate-600" />
-          </div>
-
-          <div>
-            <p className="text-sm font-medium uppercase tracking-wide text-slate-500">
-              Payment Refunded
-            </p>
-
-            <h2 className="mt-1 text-xl font-semibold text-slate-900">
-              This payment has been refunded
-            </h2>
-
-            <p className="mt-2 text-sm text-slate-600">
-              Amount:{" "}
-              <span className="font-medium">
-                {formatCurrency(
-                  payment.amount
-                )}
-              </span>
-            </p>
-          </div>
-
-        </div>
-      </section>
+      <div className="border border-border/60 bg-muted/30 rounded-sm p-8">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Refunded</p>
+        <h2 className="text-xl font-medium mb-2">This payment has been refunded</h2>
+        <p className="text-sm text-muted-foreground font-light">Amount: <span className="font-medium">{formatCurrency(payment.amount)}</span></p>
+      </div>
     )
   }
 
-  /*
-   * ==========================================
-   * FAILED
-   * ==========================================
-   */
   if (payment.status === "FAILED") {
     return (
-      <section className="rounded-3xl border border-red-200 bg-white p-6 shadow-sm">
-
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-
-          <div className="flex gap-4">
-
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-50">
-              <XCircle className="h-6 w-6 text-red-600" />
-            </div>
-
-            <div>
-              <p className="text-sm font-medium uppercase tracking-wide text-red-600">
-                Payment Failed
-              </p>
-
-              <h2 className="mt-1 text-xl font-semibold text-slate-900">
-                Your payment was unsuccessful
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-600">
-                You can retry the payment.
-              </p>
-            </div>
-
+      <div className="border border-destructive/20 bg-destructive/5 rounded-sm p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-destructive mb-2">Payment Failed</p>
+            <h2 className="text-xl font-medium mb-1">Your payment was unsuccessful</h2>
+            <p className="text-sm text-destructive/80 font-light">You can try again to confirm your booking.</p>
           </div>
-
-          <Button
-            onClick={handleRetry}
-            disabled={processing}
-          >
-            {processing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Retrying...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Retry Payment
-              </>
-            )}
+          <Button onClick={handleRetry} disabled={processing} variant="destructive" className="rounded-sm uppercase text-xs tracking-widest font-semibold px-6 py-6">
+            {processing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            Retry Payment
           </Button>
-
         </div>
-
-        {error && (
-          <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
-
-      </section>
+        {error && <p className="mt-4 text-sm font-medium">{error}</p>}
+      </div>
     )
   }
 
-  /*
-   * ==========================================
-   * PENDING
-   * ==========================================
-   */
   return (
-    <section className="rounded-3xl border border-amber-200 bg-white p-6 shadow-sm">
-
-      <div className="flex flex-col gap-5">
-
-        <div className="flex gap-4">
-
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50">
-            <Clock3 className="h-6 w-6 text-amber-600" />
-          </div>
-
-          <div className="flex-1">
-
-            <div className="flex flex-wrap items-center justify-between gap-3">
-
-              <div>
-                <p className="text-sm font-medium uppercase tracking-wide text-amber-600">
-                  Payment Pending
-                </p>
-
-                <h2 className="mt-1 text-xl font-semibold text-slate-900">
-                  Complete payment to confirm your booking
-                </h2>
-              </div>
-
-              <p className="text-xl font-semibold text-slate-900">
-                {formatCurrency(
-                  payment.amount
-                )}
-              </p>
-
-            </div>
-
-            <div className="mt-5 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2">
-
-              <div>
-                <p className="text-xs uppercase tracking-wide text-slate-400">
-                  Payment Reference
-                </p>
-
-                <p className="mt-1 break-all text-sm font-medium text-slate-800">
-                  {payment.paymentReference ||
-                    "—"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs uppercase tracking-wide text-slate-400">
-                  Payment Method
-                </p>
-
-                <p className="mt-1 text-sm font-medium text-slate-800">
-                  {payment.paymentMethod ||
-                    "Online Payment"}
-                </p>
-              </div>
-
-            </div>
-
-          </div>
+    <div className="border border-border/60 bg-card rounded-sm p-8 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between gap-6 mb-8">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">Payment Pending</p>
+          <h2 className="text-2xl font-medium">Complete payment to confirm</h2>
         </div>
-
-        {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
-
-        {TEST_PAYMENT_ENABLED && (
-          <div className="flex justify-end">
-
-            <Button
-              onClick={handlePayNow}
-              disabled={processing}
-            >
-              {processing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Pay Now
-                </>
-              )}
-            </Button>
-
-          </div>
-        )}
-
+        <div className="text-left sm:text-right">
+          <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Amount Due</p>
+          <p className="text-3xl font-medium tracking-tight">{formatCurrency(payment.amount)}</p>
+        </div>
       </div>
-    </section>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t border-border/50 mb-8">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Reference</p>
+          <p className="text-sm font-medium break-all">{payment.paymentReference || "—"}</p>
+        </div>
+        <div>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Method</p>
+          <p className="text-sm font-medium">{payment.paymentMethod || "Online Payment"}</p>
+        </div>
+      </div>
+
+      {error && <p className="mb-6 text-sm text-destructive">{error}</p>}
+
+      <div className="flex flex-col sm:flex-row justify-between items-center pt-6 border-t border-border/50 gap-4">
+        <p className="text-sm text-muted-foreground italic">
+          This is a college demo. No real transactions are processed.
+        </p>
+        <Button onClick={handlePayNow} disabled={processing} className="rounded-sm uppercase text-xs tracking-widest font-semibold px-8 py-6 w-full sm:w-auto">
+          {processing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
+          Simulate Demo Payment
+        </Button>
+      </div>
+    </div>
   )
 }
 

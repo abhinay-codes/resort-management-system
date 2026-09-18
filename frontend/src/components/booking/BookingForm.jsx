@@ -1,1361 +1,443 @@
 import { useEffect, useMemo, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
+import { format, addDays, isBefore, startOfDay, parseISO } from "date-fns"
+import { DayPicker } from "react-day-picker"
+import { ArrowRight, Calendar as CalendarIcon, Check, ChevronLeft, ChevronRight, Users, Loader2, Info } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-
-import {
-  getRooms,
-  getRoomById,
-  checkRoomAvailability,
-} from "@/services/roomService"
-
+import { getRooms, getRoomById, checkRoomAvailability } from "@/services/roomService"
 import { createBooking } from "@/services/bookingService"
-import {
-  createPayment,
-  getPaymentByBooking,
-} from "@/services/payment/paymentService"
+import { formatCurrency } from "@/utils/currency"
+
+import "react-day-picker/dist/style.css"
 
 function getTodayDate() {
   const today = new Date()
-
   const year = today.getFullYear()
-
-  const month = String(
-    today.getMonth() + 1
-  ).padStart(2, "0")
-
-  const day = String(
-    today.getDate()
-  ).padStart(2, "0")
-
+  const month = String(today.getMonth() + 1).padStart(2, "0")
+  const day = String(today.getDate()).padStart(2, "0")
   return `${year}-${month}-${day}`
-}
-
-function formatPrice(value) {
-  return Number(value).toLocaleString("en-IN")
-}
-
-function formatDate(value) {
-  if (!value) {
-    return "—"
-  }
-
-  const date = new Date(`${value}T00:00:00`)
-
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
-  return date.toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  })
 }
 
 function BookingForm() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const roomId = searchParams.get("room")
 
-  const [searchParams] =
-    useSearchParams()
+  // State
+  const [rooms, setRooms] = useState([])
+  const [selectedRoom, setSelectedRoom] = useState(null)
 
-  const roomId =
-    searchParams.get("room")
+  // Date Range (using date-fns / react-day-picker)
+  const [dateRange, setDateRange] = useState({ from: undefined, to: undefined })
+  const [guests, setGuests] = useState(2)
 
-  /*
-   * ==========================================
-   * ROOM STATE
-   * ==========================================
-   */
+  // Details
+  const [guestName, setGuestName] = useState("")
+  const [email, setEmail] = useState("")
+  const [phone, setPhone] = useState("")
+  const [specialRequest, setSpecialRequest] = useState("")
 
-  const [rooms, setRooms] =
-    useState([])
+  // Flow State
+  const [step, setStep] = useState(1) // 1: Stay, 2: Details, 3: Success
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState("")
+  const [availabilityError, setAvailabilityError] = useState("")
 
-  const [selectedRoom, setSelectedRoom] =
-    useState(null)
+  const [availability, setAvailability] = useState(null)
+  const [checkingAvailability, setCheckingAvailability] = useState(false)
+  const [booking, setBooking] = useState(null)
 
-  /*
-   * ==========================================
-   * STAY STATE
-   * ==========================================
-   */
-
-  const [checkIn, setCheckIn] =
-    useState("")
-
-  const [checkOut, setCheckOut] =
-    useState("")
-
-  const [guests, setGuests] =
-    useState(2)
-
-  /*
-   * ==========================================
-   * GUEST STATE
-   * ==========================================
-   */
-
-  const [guestName, setGuestName] =
-    useState("")
-
-  const [email, setEmail] =
-    useState("")
-
-  const [phone, setPhone] =
-    useState("")
-
-  const [specialRequest, setSpecialRequest] =
-    useState("")
-
-  /*
-   * ==========================================
-   * BOOKING STATE
-   * ==========================================
-   */
-
-  const [booking, setBooking] =
-    useState(null)
-
-  const [payment, setPayment] =
-    useState(null)
-
-  const [bookingCreated, setBookingCreated] =
-    useState(false)
-
-  /*
-   * ==========================================
-   * PAGE STATE
-   * ==========================================
-   */
-
-  const [loading, setLoading] =
-    useState(true)
-
-  const [submitting, setSubmitting] =
-    useState(false)
-
-  const [paymentLoading, setPaymentLoading] =
-    useState(false)
-
-  const [error, setError] =
-    useState("")
-
-  /*
-   * ==========================================
-   * AVAILABILITY STATE
-   * ==========================================
-   */
-
-  const [availability, setAvailability] =
-    useState(null)
-
-  const [checkingAvailability, setCheckingAvailability] =
-    useState(false)
-
-  /*
-   * ==========================================
-   * LOAD ROOMS
-   * ==========================================
-   */
-
+  // Load Rooms
   useEffect(() => {
     let cancelled = false
-
     async function loadRooms() {
       try {
-        setLoading(true)
-        setError("")
+        const data = await getRooms()
+        if (cancelled) return
 
-        const data =
-          await getRooms()
-
-        if (cancelled) {
-          return
-        }
-
-        const roomList =
-          Array.isArray(data)
-            ? data
-            : []
-
-        setRooms(roomList)
+        const roomList = Array.isArray(data) ? data : []
+        // Deduplicate
+        const uniqueRoomsMap = new Map()
+        roomList.forEach(r => {
+          if (!uniqueRoomsMap.has(r.name)) uniqueRoomsMap.set(r.name, r)
+        })
+        const uniqueRooms = Array.from(uniqueRoomsMap.values())
+        setRooms(uniqueRooms)
 
         if (roomId) {
-          const room =
-            await getRoomById(roomId)
-
-          if (cancelled) {
-            return
-          }
-
+          const room = await getRoomById(roomId)
+          if (cancelled) return
           setSelectedRoom(room)
-
-          setGuests(
-            Math.min(
-              2,
-              room.guests
-            )
-          )
-        } else if (
-          roomList.length > 0
-        ) {
-          setSelectedRoom(
-            roomList[0]
-          )
-
-          setGuests(
-            Math.min(
-              2,
-              roomList[0].guests
-            )
-          )
+          setGuests(Math.min(2, room.guests))
+        } else if (uniqueRooms.length > 0) {
+          setSelectedRoom(uniqueRooms[0])
+          setGuests(Math.min(2, uniqueRooms[0].guests))
         }
-      } catch (error) {
-        console.error(
-          "Failed to load rooms:",
-          error
-        )
-
-        if (!cancelled) {
-          setError(
-            "Unable to load rooms. Please try again."
-          )
-        }
+      } catch (err) {
+        if (!cancelled) setError("Unable to load rooms. Please try again.")
       } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
+        if (!cancelled) setLoading(false)
       }
     }
-
     loadRooms()
-
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [roomId])
 
-  /*
-   * ==========================================
-   * CHECK ROOM AVAILABILITY
-   * ==========================================
-   */
+  // Computed Check-in / Check-out strings
+  const checkInStr = dateRange.from ? format(dateRange.from, "yyyy-MM-dd") : ""
+  const checkOutStr = dateRange.to ? format(dateRange.to, "yyyy-MM-dd") : ""
 
+  // Check Availability
   useEffect(() => {
     let cancelled = false
-
-    async function checkAvailability() {
-      if (
-        !selectedRoom ||
-        !checkIn ||
-        !checkOut
-      ) {
+    async function checkAvail() {
+      if (!selectedRoom || !checkInStr || !checkOutStr) {
         setAvailability(null)
-        return
-      }
-
-      if (checkOut <= checkIn) {
-        setAvailability(null)
+        setAvailabilityError("")
         return
       }
 
       try {
         setCheckingAvailability(true)
         setAvailability(null)
-        setError("")
+        setAvailabilityError("")
 
-        const result =
-          await checkRoomAvailability(
-            selectedRoom.id,
-            checkIn,
-            checkOut
-          )
-
+        const result = await checkRoomAvailability(selectedRoom.id, checkInStr, checkOutStr)
         if (!cancelled) {
-          setAvailability(
-            result.available
-          )
+          setAvailability(result.available)
+          if (!result.available) {
+            setAvailabilityError("This room is not available for these dates.")
+          }
         }
-      } catch (error) {
-        console.error(
-          "Failed to check availability:",
-          error
-        )
-
+      } catch (err) {
         if (!cancelled) {
           setAvailability(null)
-
-          setError(
-            "Unable to check room availability. Please try again."
-          )
+          setAvailabilityError("Unable to check room availability.")
         }
       } finally {
-        if (!cancelled) {
-          setCheckingAvailability(false)
-        }
+        if (!cancelled) setCheckingAvailability(false)
       }
     }
-
-    checkAvailability()
-
-    return () => {
-      cancelled = true
-    }
-  }, [
-    selectedRoom,
-    checkIn,
-    checkOut,
-  ])
-
-  /*
-   * ==========================================
-   * CALCULATE NIGHTS
-   * ==========================================
-   */
+    checkAvail()
+    return () => { cancelled = true }
+  }, [selectedRoom, checkInStr, checkOutStr])
 
   const nights = useMemo(() => {
-    if (
-      !checkIn ||
-      !checkOut
-    ) {
-      return 0
+    if (!dateRange.from || !dateRange.to) return 0
+    const diff = dateRange.to.getTime() - dateRange.from.getTime()
+    return Math.max(0, Math.round(diff / (1000 * 60 * 60 * 24)))
+  }, [dateRange])
+
+  const total = selectedRoom && nights > 0 ? nights * Number(selectedRoom.price) : 0
+
+  // Proceed to Step 2
+  const handleProceedToDetails = () => {
+    setError("")
+    if (!dateRange.from || !dateRange.to) {
+      setError("Please select check-in and check-out dates.")
+      return
     }
-
-    const start =
-      new Date(
-        `${checkIn}T00:00:00`
-      )
-
-    const end =
-      new Date(
-        `${checkOut}T00:00:00`
-      )
-
-    const difference =
-      end.getTime() -
-      start.getTime()
-
-    return Math.max(
-      0,
-      Math.round(
-        difference /
-          (1000 * 60 * 60 * 24)
-      )
-    )
-  }, [
-    checkIn,
-    checkOut,
-  ])
-
-  /*
-   * ==========================================
-   * CALCULATE TOTAL
-   * ==========================================
-   */
-
-  const total =
-    selectedRoom &&
-    nights > 0
-      ? nights *
-        Number(selectedRoom.price)
-      : 0
-
-  /*
-   * ==========================================
-   * ROOM CHANGE
-   * ==========================================
-   */
-
-  async function handleRoomChange(
-    event
-  ) {
-    const id =
-      event.target.value
-
-    try {
-      setError("")
-      setAvailability(null)
-
-      const room =
-        await getRoomById(id)
-
-      setSelectedRoom(room)
-
-      setGuests(
-        Math.min(
-          guests,
-          room.guests
-        )
-      )
-    } catch (error) {
-      console.error(
-        "Failed to load room:",
-        error
-      )
-
-      setError(
-        "Unable to load the selected room."
-      )
+    if (availability === false) {
+      setError("Please select available dates before continuing.")
+      return
     }
+    if (availability === null) {
+      setError("Please wait for availability check.")
+      return
+    }
+    setStep(2)
+    window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
-  /*
-   * ==========================================
-   * CREATE BOOKING
-   * ==========================================
-   *
-   * IMPORTANT:
-   *
-   * Creating the booking does NOT mean
-   * the booking is confirmed.
-   *
-   * New booking:
-   *
-   * PENDING
-   *     ↓
-   * PAYMENT REQUIRED
-   *     ↓
-   * SUCCESSFUL PAYMENT
-   *     ↓
-   * CONFIRMED
-   *
-   * ==========================================
-   */
-
-  async function handleBooking() {
-    if (submitting) {
-      return
-    }
-
+  // Submit Booking
+  const handleBooking = async () => {
+    if (submitting) return
     setError("")
 
-    if (!guestName.trim()) {
-      setError(
-        "Please enter your full name."
-      )
-      return
-    }
-
-    if (!email.trim()) {
-      setError(
-        "Please enter your email address."
-      )
-      return
-    }
-
-    if (!phone.trim()) {
-      setError(
-        "Please enter your phone number."
-      )
-      return
-    }
-
-    if (!checkIn || !checkOut) {
-      setError(
-        "Please select check-in and check-out dates."
-      )
-      return
-    }
-
-    if (
-      checkIn < getTodayDate()
-    ) {
-      setError(
-        "Check-in cannot be in the past."
-      )
-      return
-    }
-
-    if (checkOut <= checkIn) {
-      setError(
-        "Check-out must be after check-in."
-      )
-      return
-    }
-
-    if (!selectedRoom) {
-      setError(
-        "Please select a room."
-      )
-      return
-    }
-
-    if (
-      guests < 1 ||
-      guests > selectedRoom.guests
-    ) {
-      setError(
-        `This room allows up to ${selectedRoom.guests} guests.`
-      )
-      return
-    }
-
-    if (availability === false) {
-      setError(
-        "This room is not available for the selected dates."
-      )
-      return
-    }
-
-    if (availability === null) {
-      setError(
-        "Please wait for the room availability check to complete."
-      )
+    if (!guestName.trim() || !email.trim() || !phone.trim()) {
+      setError("Please fill in all required details.")
       return
     }
 
     try {
       setSubmitting(true)
-
-      const createdBooking =
-        await createBooking({
-          guestName:
-            guestName.trim(),
-
-          email:
-            email.trim(),
-
-          phone:
-            phone.trim(),
-
-          specialRequest:
-            specialRequest.trim(),
-
-          checkIn,
-
-          checkOut,
-
-          guests,
-
-          roomId:
-            selectedRoom.id,
-        })
-
-      console.log(
-        "Created pending booking:",
-        createdBooking
-      )
-
-      setBooking(
-        createdBooking
-      )
-
-      setBookingCreated(true)
-
-      /*
-       * The backend creates a pending
-       * payment for a new booking.
-       *
-       * We load that payment here so
-       * the customer can proceed to
-       * payment immediately.
-       */
-
-      try {
-        const existingPayment =
-          await getPaymentByBooking(
-            createdBooking.id
-          )
-
-        setPayment(
-          existingPayment
-        )
-      } catch (paymentError) {
-        console.error(
-          "Failed to load payment:",
-          paymentError
-        )
-
-        /*
-         * If the payment does not
-         * already exist, we create it.
-         */
-
-        try {
-          const createdPayment =
-            await createPayment(
-              createdBooking.id
-            )
-
-          setPayment(
-            createdPayment
-          )
-        } catch (createPaymentError) {
-          console.error(
-            "Failed to create payment:",
-            createPaymentError
-          )
-
-          setError(
-            createPaymentError.message ||
-              "Booking was created, but payment could not be initialized."
-          )
-        }
-      }
-
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
+      const createdBooking = await createBooking({
+        guestName: guestName.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        specialRequest: specialRequest.trim(),
+        checkIn: checkInStr,
+        checkOut: checkOutStr,
+        guests,
+        roomId: selectedRoom.id,
       })
-    } catch (error) {
-      console.error(
-        "Failed to create booking:",
-        error
-      )
 
-      setError(
-        error.message ||
-          "Unable to create your booking. Please try again."
-      )
-    } finally {
+      setBooking(createdBooking)
+
+      // Navigate straight to Payment
+      navigate(`/customer/bookings/${createdBooking.id}`)
+
+    } catch (err) {
+      setError(err.message || "Unable to create your booking. Please try again.")
       setSubmitting(false)
     }
   }
 
-  /*
-   * ==========================================
-   * START PAYMENT
-   * ==========================================
-   *
-   * The actual test-gateway payment
-   * processing will be connected to
-   * the customer payment endpoint in
-   * the next backend block.
-   *
-   * For now we navigate to the customer's
-   * booking page where the PaymentCard
-   * handles the payment UI.
-   *
-   * ==========================================
-   */
-
-  function handlePayNow() {
-    if (!booking?.id) {
-      return
-    }
-
-    navigate(
-      `/customer/bookings/${booking.id}`
-    )
-  }
-
-  /*
-   * ==========================================
-   * BOOK ANOTHER STAY
-   * ==========================================
-   */
-
-  function handleBookAnother() {
-    setBooking(null)
-    setPayment(null)
-    setBookingCreated(false)
-
-    setCheckIn("")
-    setCheckOut("")
-
-    setGuestName("")
-    setEmail("")
-    setPhone("")
-    setSpecialRequest("")
-
-    setAvailability(null)
-    setError("")
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    })
-  }
-
-  /*
-   * ==========================================
-   * LOADING
-   * ==========================================
-   */
-
   if (loading) {
     return (
-      <div className="mx-auto max-w-4xl rounded-2xl bg-white p-6 text-center shadow-lg sm:p-10">
-        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-black" />
-
-        <p className="mt-4 text-sm text-gray-500 sm:text-base">
-          Loading booking information...
-        </p>
+      <div className="flex flex-col items-center justify-center py-32">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground font-light">Preparing your booking experience...</p>
       </div>
     )
   }
 
-  /*
-   * ==========================================
-   * ROOM LOAD ERROR
-   * ==========================================
-   */
-
-  if (
-    error &&
-    !selectedRoom
-  ) {
+  if (error && !selectedRoom) {
     return (
-      <div className="mx-auto max-w-4xl rounded-2xl bg-white p-6 text-center shadow-lg sm:p-10">
-        <p className="text-sm text-red-500 sm:text-base">
-          {error}
-        </p>
+      <div className="py-32 text-center">
+        <p className="text-destructive">{error}</p>
       </div>
     )
   }
-
-  if (!selectedRoom) {
-    return (
-      <div className="mx-auto max-w-4xl rounded-2xl bg-white p-6 text-center shadow-lg sm:p-10">
-        <p className="text-sm text-gray-600 sm:text-base">
-          No rooms are currently available.
-        </p>
-      </div>
-    )
-  }
-
-  /*
-   * ==========================================
-   * PAYMENT REQUIRED SCREEN
-   * ==========================================
-   */
-
-  if (
-    bookingCreated &&
-    booking
-  ) {
-    const paymentStatus =
-      payment?.status ||
-      "PENDING"
-
-    const paymentSuccessful =
-      paymentStatus === "SUCCESS"
-
-    return (
-      <div className="mx-auto max-w-3xl rounded-2xl bg-white p-5 shadow-lg sm:p-10">
-
-        {/* HEADER */}
-
-        <div className="text-center">
-
-          <div
-            className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full text-2xl sm:h-16 sm:w-16 sm:text-3xl ${
-              paymentSuccessful
-                ? "bg-green-100 text-green-700"
-                : "bg-yellow-100 text-yellow-700"
-            }`}
-          >
-            {paymentSuccessful
-              ? "✓"
-              : "₹"}
-          </div>
-
-          <h2 className="mt-5 text-2xl font-bold leading-tight sm:mt-6 sm:text-3xl">
-            {paymentSuccessful
-              ? "Booking Confirmed"
-              : "Payment Required"}
-          </h2>
-
-          <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-gray-600 sm:text-base sm:leading-7">
-            {paymentSuccessful
-              ? "Your payment was successful and your reservation is confirmed."
-              : "Your booking has been created successfully. Complete the payment to confirm your reservation."}
-          </p>
-
-        </div>
-
-        {/* BOOKING REFERENCE */}
-
-        <div className="mt-6 rounded-2xl border-2 border-dashed p-5 text-center sm:mt-8 sm:p-6">
-
-          <p className="text-xs uppercase tracking-[0.18em] text-gray-500 sm:text-sm">
-            Booking Reference
-          </p>
-
-          <p className="mt-3 text-2xl font-bold tracking-wide sm:text-3xl">
-            #{booking.id}
-          </p>
-
-          <p className="mt-3 text-xs text-gray-500 sm:text-sm">
-            Keep this reference for future use.
-          </p>
-
-        </div>
-
-        {/* BOOKING DETAILS */}
-
-        <div className="mt-5 rounded-xl bg-gray-100 p-5 sm:mt-6 sm:p-6">
-
-          <h3 className="text-lg font-semibold sm:text-xl">
-            Booking Details
-          </h3>
-
-          <div className="mt-5 space-y-4 text-sm text-gray-700">
-
-            <div className="flex justify-between gap-4">
-              <span className="text-gray-500">
-                Guest
-              </span>
-
-              <strong className="text-right">
-                {booking.guestName}
-              </strong>
-            </div>
-
-            <div className="flex justify-between gap-4">
-              <span className="text-gray-500">
-                Room
-              </span>
-
-              <strong className="text-right">
-                {booking.room?.name ||
-                  selectedRoom.name}
-              </strong>
-            </div>
-
-            <div className="flex justify-between gap-4">
-              <span className="text-gray-500">
-                Check-in
-              </span>
-
-              <strong className="text-right">
-                {formatDate(
-                  booking.checkIn
-                )}
-              </strong>
-            </div>
-
-            <div className="flex justify-between gap-4">
-              <span className="text-gray-500">
-                Check-out
-              </span>
-
-              <strong className="text-right">
-                {formatDate(
-                  booking.checkOut
-                )}
-              </strong>
-            </div>
-
-            <div className="flex justify-between gap-4">
-              <span className="text-gray-500">
-                Guests
-              </span>
-
-              <strong>
-                {booking.guests}
-              </strong>
-            </div>
-
-            <div className="flex justify-between gap-4">
-              <span className="text-gray-500">
-                Nights
-              </span>
-
-              <strong>
-                {nights}
-              </strong>
-            </div>
-
-          </div>
-
-        </div>
-
-        {/* PAYMENT SUMMARY */}
-
-        <div className="mt-5 rounded-xl border p-5 sm:mt-6 sm:p-6">
-
-          <div className="flex items-center justify-between gap-4">
-
-            <div>
-              <p className="text-xs uppercase tracking-wide text-gray-500">
-                Payment Status
-              </p>
-
-              <p
-                className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold ${
-                  paymentSuccessful
-                    ? "bg-green-100 text-green-700"
-                    : paymentStatus === "FAILED"
-                      ? "bg-red-100 text-red-700"
-                      : "bg-yellow-100 text-yellow-700"
-                }`}
-              >
-                {paymentStatus}
-              </p>
-            </div>
-
-            <div className="text-right">
-
-              <p className="text-xs uppercase tracking-wide text-gray-500">
-                Amount
-              </p>
-
-              <p className="mt-1 text-2xl font-bold">
-                ₹
-                {formatPrice(
-                  payment?.amount ??
-                    booking.totalAmount ??
-                    total
-                )}
-              </p>
-
-            </div>
-
-          </div>
-
-        </div>
-
-        {/* ACTION */}
-
-        {!paymentSuccessful && (
-          <div className="mt-6">
-
-            {error && (
-              <div
-                role="alert"
-                className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-700"
-              >
-                {error}
-              </div>
-            )}
-
-            <Button
-              type="button"
-              onClick={
-                handlePayNow
-              }
-              disabled={
-                paymentLoading
-              }
-              className="w-full py-5 text-base"
-            >
-              {paymentLoading
-                ? "Opening Payment..."
-                : paymentStatus === "FAILED"
-                  ? "Retry Payment"
-                  : "Pay Now"}
-            </Button>
-
-            <p className="mt-3 text-center text-xs leading-5 text-gray-500">
-              Your reservation will only be confirmed after successful payment.
-            </p>
-
-          </div>
-        )}
-
-        {/* SUCCESS */}
-
-        {paymentSuccessful && (
-          <div className="mt-6 rounded-xl border border-green-200 bg-green-50 p-5 text-sm leading-6 text-green-800">
-            <strong>
-              Payment successful.
-            </strong>{" "}
-            Your reservation is now confirmed.
-          </div>
-        )}
-
-        {/* BOOK ANOTHER */}
-
-        <Button
-          type="button"
-          variant={
-            paymentSuccessful
-              ? "default"
-              : "outline"
-          }
-          onClick={
-            handleBookAnother
-          }
-          className="mt-5 w-full"
-        >
-          Book Another Stay
-        </Button>
-
-      </div>
-    )
-  }
-
-  /*
-   * ==========================================
-   * BOOKING FORM
-   * ==========================================
-   */
 
   return (
-    <div className="mx-auto max-w-4xl rounded-2xl bg-white p-5 shadow-lg sm:p-8">
+    <div className="max-w-6xl mx-auto mb-32">
 
-      <h2 className="text-2xl font-bold">
-        Your Stay
-      </h2>
-
-      {/* ERROR */}
+      {/* Progress Indicator */}
+      <div className="flex items-center justify-center gap-4 mb-16">
+        <div className={`text-xs font-semibold uppercase tracking-widest ${step >= 1 ? "text-primary" : "text-muted-foreground"}`}>01 Stay</div>
+        <div className="w-12 h-px bg-border" />
+        <div className={`text-xs font-semibold uppercase tracking-widest ${step >= 2 ? "text-primary" : "text-muted-foreground"}`}>02 Details</div>
+        <div className="w-12 h-px bg-border" />
+        <div className={`text-xs font-semibold uppercase tracking-widest ${step >= 3 ? "text-primary" : "text-muted-foreground"}`}>03 Payment</div>
+      </div>
 
       {error && (
-        <div
-          role="alert"
-          className="mt-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-700 sm:mt-6"
-        >
+        <div className="mb-8 p-4 bg-destructive/5 border border-destructive/20 text-destructive rounded-sm text-sm text-center">
           {error}
         </div>
       )}
 
-      {/* STAY DETAILS */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-12 lg:gap-24">
 
-      <div className="mt-6 grid gap-5 md:grid-cols-2">
-
+        {/* LEFT COLUMN: FORMS */}
         <div>
-          <label
-            htmlFor="check-in"
-            className="mb-2 block text-sm font-semibold"
-          >
-            Check-In
-          </label>
+          {step === 1 && (
+            <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-          <input
-            id="check-in"
-            type="date"
-            min={getTodayDate()}
-            value={checkIn}
-            onChange={(event) => {
-              setCheckIn(
-                event.target.value
-              )
+              {/* Room Selection */}
+              <div>
+                <h2 className="text-2xl font-medium mb-6">Select your room</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {rooms.map(room => (
+                    <button
+                      key={room.id}
+                      onClick={() => setSelectedRoom(room)}
+                      className={`text-left p-5 border rounded-sm transition-all duration-300 ${
+                        selectedRoom?.id === room.id
+                          ? "border-primary bg-primary/5 shadow-sm"
+                          : "border-border/60 bg-card hover:border-primary/50"
+                      }`}
+                    >
+                      <h3 className="font-medium mb-1">{room.name}</h3>
+                      <p className="text-xs text-muted-foreground font-light flex items-center gap-2">
+                        <Users className="h-3 w-3" /> Up to {room.guests} guests
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-              setAvailability(null)
-            }}
-            className="w-full rounded-lg border border-gray-300 p-3 outline-none transition focus:border-gray-500 focus:ring-2 focus:ring-gray-200"
-          />
-        </div>
+              {/* Dates */}
+              <div>
+                <h2 className="text-2xl font-medium mb-6">When will you be staying?</h2>
+                <div className="border border-border/60 bg-card rounded-sm p-6 overflow-hidden overflow-x-auto flex justify-center shadow-sm">
+                  <DayPicker
+                    mode="range"
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    disabled={{ before: new Date() }}
+                    numberOfMonths={window.innerWidth > 768 ? 2 : 1}
+                    className="premium-calendar"
+                    classNames={{
+                      day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                      day_today: "font-semibold text-primary",
+                    }}
+                  />
+                </div>
 
-        <div>
-          <label
-            htmlFor="check-out"
-            className="mb-2 block text-sm font-semibold"
-          >
-            Check-Out
-          </label>
-
-          <input
-            id="check-out"
-            type="date"
-            min={
-              checkIn ||
-              getTodayDate()
-            }
-            value={checkOut}
-            onChange={(event) => {
-              setCheckOut(
-                event.target.value
-              )
-
-              setAvailability(null)
-            }}
-            className="w-full rounded-lg border border-gray-300 p-3 outline-none transition focus:border-gray-500 focus:ring-2 focus:ring-gray-200"
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="guests"
-            className="mb-2 block text-sm font-semibold"
-          >
-            Guests
-          </label>
-
-          <input
-            id="guests"
-            type="number"
-            min="1"
-            max={
-              selectedRoom.guests
-            }
-            value={guests}
-            onChange={(event) =>
-              setGuests(
-                Number(
-                  event.target.value
-                )
-              )
-            }
-            className="w-full rounded-lg border border-gray-300 p-3 outline-none transition focus:border-gray-500 focus:ring-2 focus:ring-gray-200"
-          />
-
-          <p className="mt-2 text-xs text-gray-500">
-            Maximum{" "}
-            {selectedRoom.guests}{" "}
-            guests
-          </p>
-        </div>
-
-        <div>
-          <label
-            htmlFor="room-type"
-            className="mb-2 block text-sm font-semibold"
-          >
-            Room Type
-          </label>
-
-          <select
-            id="room-type"
-            value={
-              selectedRoom.id
-            }
-            onChange={
-              handleRoomChange
-            }
-            className="w-full rounded-lg border border-gray-300 bg-white p-3 outline-none transition focus:border-gray-500 focus:ring-2 focus:ring-gray-200"
-          >
-            {rooms.map(
-              (room) => (
-                <option
-                  key={room.id}
-                  value={room.id}
-                >
-                  {room.name}
-                </option>
-              )
-            )}
-          </select>
-        </div>
-
-      </div>
-
-      {/* AVAILABILITY */}
-
-      {checkingAvailability && (
-        <div
-          role="status"
-          className="mt-5 rounded-lg bg-gray-100 p-4 text-sm leading-6 text-gray-600 sm:mt-6"
-        >
-          Checking room availability...
-        </div>
-      )}
-
-      {!checkingAvailability &&
-        availability === true && (
-          <div
-            role="status"
-            className="mt-5 rounded-lg border border-green-200 bg-green-50 p-4 text-sm leading-6 text-green-700 sm:mt-6"
-          >
-            ✓ This room is available for your selected dates.
-          </div>
-        )}
-
-      {!checkingAvailability &&
-        availability === false && (
-          <div
-            role="alert"
-            className="mt-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-700 sm:mt-6"
-          >
-            ✕ This room is not available for your selected dates.
-          </div>
-        )}
-
-      {/* GUEST DETAILS */}
-
-      <h2 className="mt-8 text-2xl font-bold sm:mt-10">
-        Guest Details
-      </h2>
-
-      <div className="mt-5 space-y-5 sm:mt-6 sm:space-y-6">
-
-        <div>
-          <label
-            htmlFor="guest-name"
-            className="mb-2 block text-sm font-semibold"
-          >
-            Full Name *
-          </label>
-
-          <input
-            id="guest-name"
-            type="text"
-            value={guestName}
-            onChange={(event) =>
-              setGuestName(
-                event.target.value
-              )
-            }
-            placeholder="Enter your full name"
-            maxLength={100}
-            autoComplete="name"
-            className="w-full rounded-lg border border-gray-300 p-3 outline-none transition focus:border-gray-500 focus:ring-2 focus:ring-gray-200"
-          />
-        </div>
-
-        <div className="grid gap-5 md:grid-cols-2">
-
-          <div>
-            <label
-              htmlFor="email"
-              className="mb-2 block text-sm font-semibold"
-            >
-              Email *
-            </label>
-
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(event) =>
-                setEmail(
-                  event.target.value
-                )
-              }
-              placeholder="you@example.com"
-              maxLength={255}
-              autoComplete="email"
-              className="w-full rounded-lg border border-gray-300 p-3 outline-none transition focus:border-gray-500 focus:ring-2 focus:ring-gray-200"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="phone"
-              className="mb-2 block text-sm font-semibold"
-            >
-              Phone *
-            </label>
-
-            <input
-              id="phone"
-              type="tel"
-              value={phone}
-              onChange={(event) =>
-                setPhone(
-                  event.target.value
-                )
-              }
-              placeholder="Enter phone number"
-              maxLength={20}
-              autoComplete="tel"
-              className="w-full rounded-lg border border-gray-300 p-3 outline-none transition focus:border-gray-500 focus:ring-2 focus:ring-gray-200"
-            />
-          </div>
-
-        </div>
-
-        <div>
-          <label
-            htmlFor="special-request"
-            className="mb-2 block text-sm font-semibold"
-          >
-            Special Requests
-          </label>
-
-          <textarea
-            id="special-request"
-            value={specialRequest}
-            onChange={(event) =>
-              setSpecialRequest(
-                event.target.value
-              )
-            }
-            placeholder="Any special requests?"
-            maxLength={500}
-            rows="4"
-            className="w-full resize-y rounded-lg border border-gray-300 p-3 outline-none transition focus:border-gray-500 focus:ring-2 focus:ring-gray-200"
-          />
-        </div>
-
-      </div>
-
-      {/* BOOKING SUMMARY */}
-
-      <div className="mt-8 rounded-xl bg-gray-100 p-5 sm:mt-10 sm:p-6">
-
-        <h3 className="text-xl font-semibold sm:text-2xl">
-          Booking Summary
-        </h3>
-
-        <div className="mt-4 space-y-3 text-sm sm:text-base">
-
-          <div className="flex items-start justify-between gap-4">
-            <span className="text-gray-600">
-              Room
-            </span>
-
-            <strong className="text-right">
-              {selectedRoom.name}
-            </strong>
-          </div>
-
-          <div className="flex items-start justify-between gap-4">
-            <span className="text-gray-600">
-              Price per night
-            </span>
-
-            <strong className="text-right">
-              ₹
-              {formatPrice(
-                selectedRoom.price
-              )}
-            </strong>
-          </div>
-
-          <div className="flex items-start justify-between gap-4">
-            <span className="text-gray-600">
-              Nights
-            </span>
-
-            <strong>
-              {nights}
-            </strong>
-          </div>
-
-          <div className="border-t pt-4">
-
-            <div className="flex items-start justify-between gap-4">
-
-              <span className="text-lg font-bold sm:text-xl">
-                Total
-              </span>
-
-              <span className="text-xl font-bold sm:text-2xl">
-                ₹
-                {formatPrice(
-                  total
+                {checkingAvailability && (
+                  <p className="text-sm text-muted-foreground mt-4 flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Checking availability...
+                  </p>
                 )}
-              </span>
 
+                {availabilityError && (
+                  <p className="text-sm text-destructive mt-4">{availabilityError}</p>
+                )}
+
+                {availability === true && (
+                  <p className="text-sm text-green-600 mt-4 flex items-center gap-2 font-medium">
+                    <Check className="h-4 w-4" /> Your dates are available.
+                  </p>
+                )}
+              </div>
+
+              {/* Guests */}
+              <div>
+                <h2 className="text-2xl font-medium mb-6">Who is coming?</h2>
+                <div className="flex items-center justify-between p-5 border border-border/60 bg-card rounded-sm shadow-sm max-w-sm">
+                  <div>
+                    <p className="font-medium">Guests</p>
+                    <p className="text-xs text-muted-foreground font-light">Max {selectedRoom?.guests || 2}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setGuests(Math.max(1, guests - 1))}
+                      className="w-8 h-8 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-50"
+                      disabled={guests <= 1}
+                    >
+                      -
+                    </button>
+                    <span className="w-4 text-center font-medium">{guests}</span>
+                    <button
+                      onClick={() => setGuests(Math.min(selectedRoom?.guests || 2, guests + 1))}
+                      className="w-8 h-8 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-50"
+                      disabled={guests >= (selectedRoom?.guests || 2)}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-12 animate-in fade-in slide-in-from-right-8 duration-500">
+              <div>
+                <h2 className="text-2xl font-medium mb-6">Your Details</h2>
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Full Name</label>
+                    <input
+                      type="text"
+                      value={guestName}
+                      onChange={e => setGuestName(e.target.value)}
+                      placeholder="John Doe"
+                      className="w-full p-4 border border-border/60 bg-card rounded-sm focus:outline-none focus:border-primary transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Email Address</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="john@example.com"
+                      className="w-full p-4 border border-border/60 bg-card rounded-sm focus:outline-none focus:border-primary transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Phone Number</label>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={e => setPhone(e.target.value)}
+                      placeholder="+1 (555) 000-0000"
+                      className="w-full p-4 border border-border/60 bg-card rounded-sm focus:outline-none focus:border-primary transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Special Requests (Optional)</label>
+                    <textarea
+                      value={specialRequest}
+                      onChange={e => setSpecialRequest(e.target.value)}
+                      placeholder="Any preferences or requirements?"
+                      rows={4}
+                      className="w-full p-4 border border-border/60 bg-card rounded-sm focus:outline-none focus:border-primary transition-colors resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-8">
+                  <Button
+                    variant="outline"
+                    onClick={() => setStep(1)}
+                    className="mr-4"
+                  >
+                    Back to Stay
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+
+        {/* RIGHT COLUMN: SUMMARY */}
+        <div>
+          <div className="sticky top-32 border border-border/60 bg-card rounded-sm p-8 shadow-sm">
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-6">Booking Summary</h3>
+
+            <div className="space-y-6 pb-6 border-b border-border/50">
+              <div>
+                <p className="text-xl font-medium mb-1">{selectedRoom?.name}</p>
+                <p className="text-sm text-muted-foreground font-light">{guests} {guests === 1 ? 'Guest' : 'Guests'}</p>
+              </div>
+
+              {dateRange.from && dateRange.to ? (
+                <div>
+                  <p className="text-sm font-medium">
+                    {format(dateRange.from, "MMM d, yyyy")} &mdash; {format(dateRange.to, "MMM d, yyyy")}
+                  </p>
+                  <p className="text-xs text-muted-foreground font-light mt-1">{nights} {nights === 1 ? 'Night' : 'Nights'}</p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground font-light italic">Select dates for your stay</p>
+              )}
+            </div>
+
+            <div className="pt-6">
+              <div className="flex justify-between items-center mb-6">
+                <span className="text-sm font-medium">Total</span>
+                <span className="text-2xl font-medium tracking-tight">
+                  {nights > 0 ? formatCurrency(total) : "—"}
+                </span>
+              </div>
+
+              {step === 1 && (
+                <Button
+                  onClick={handleProceedToDetails}
+                  className="w-full py-6 uppercase tracking-widest text-xs font-semibold rounded-sm bg-primary hover:bg-primary/90 text-primary-foreground"
+                  disabled={!dateRange.from || !dateRange.to || availability !== true}
+                >
+                  Continue to Details
+                </Button>
+              )}
+
+              {step === 2 && (
+                <Button
+                  onClick={handleBooking}
+                  disabled={submitting}
+                  className="w-full py-6 uppercase tracking-widest text-xs font-semibold rounded-sm bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm & Pay"}
+                </Button>
+              )}
+
+              <p className="mt-4 text-xs text-center text-muted-foreground font-light flex items-center justify-center gap-1.5">
+                <Info className="h-3 w-3" /> You won't be charged yet
+              </p>
             </div>
 
           </div>
-
         </div>
 
       </div>
-
-      {/* SUBMIT */}
-
-      <Button
-        type="button"
-        onClick={
-          handleBooking
-        }
-        disabled={
-          checkingAvailability ||
-          submitting ||
-          availability !== true
-        }
-        className="mt-6 w-full py-5 text-base sm:mt-8"
-      >
-        {submitting
-          ? "Creating Booking..."
-          : checkingAvailability
-            ? "Checking Availability..."
-            : availability === false
-              ? "Room Unavailable"
-              : availability === true
-                ? "Continue to Payment"
-                : "Select Dates to Continue"}
-      </Button>
-
-      <p className="mt-3 text-center text-xs leading-5 text-gray-500">
-        Your reservation will remain pending until payment is completed.
-      </p>
-
     </div>
   )
 }

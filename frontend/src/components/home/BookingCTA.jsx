@@ -1,57 +1,40 @@
-import {
-  ArrowRight,
-  CalendarCheck,
-} from "lucide-react"
 import { useNavigate } from "react-router-dom"
-
 import { Button } from "@/components/ui/button"
-
 
 function BookingCTA() {
   const navigate = useNavigate()
 
   return (
-    <section className="section bg-background">
-      <div className="page-container">
+    <section className="relative w-full py-32 sm:py-48 overflow-hidden">
+      {/* Background Image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-fixed"
+        style={{
+          backgroundImage: "url('https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&q=80&w=2000')"
+        }}
+        aria-hidden="true"
+      />
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
 
-        <div className="relative overflow-hidden rounded-[2rem] bg-primary px-6 py-12 text-primary-foreground shadow-xl sm:px-10 sm:py-16 md:px-16">
+      {/* Content */}
+      <div className="relative z-10 w-full max-w-4xl mx-auto px-6 text-center flex flex-col items-center justify-center">
+        <h2 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-white mb-8 drop-shadow-md">
+          Your stay begins here.
+        </h2>
+        <p className="text-lg text-white/80 font-light max-w-xl mx-auto mb-10">
+          Reserve your slice of paradise today and discover the true meaning of relaxation.
+        </p>
 
-          {/* Decorative shapes */}
-          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-2xl" />
-          <div className="absolute -bottom-24 -left-20 h-64 w-64 rounded-full bg-black/10 blur-2xl" />
-
-          <div className="relative z-10 mx-auto max-w-3xl text-center">
-
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm">
-              <CalendarCheck className="h-5 w-5" />
-            </div>
-
-            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.25em] text-primary-foreground/75 sm:text-sm sm:tracking-[0.3em]">
-              Your Escape Awaits
-            </p>
-
-            <h2 className="mt-4 text-balance text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-              Ready for your next getaway?
-            </h2>
-
-            <p className="mx-auto mt-5 max-w-2xl text-pretty text-base leading-7 text-primary-foreground/80 sm:text-lg sm:leading-8">
-              Find your perfect room and book your stay at Paradise Resort.
-            </p>
-
-            <Button
-              onClick={() => navigate("/rooms")}
-              className="mt-8 min-h-12 rounded-xl bg-white px-7 text-base text-primary shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/90"
-            >
-              Check Availability
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-
-          </div>
-        </div>
+        <Button
+          onClick={() => navigate("/rooms")}
+          className="bg-white text-black hover:bg-white/90 px-8 py-6 text-sm uppercase tracking-widest font-medium rounded-sm transition-all duration-300 shadow-xl hover:shadow-2xl"
+        >
+          Explore Rooms
+        </Button>
       </div>
     </section>
   )
 }
-
 
 export default BookingCTA

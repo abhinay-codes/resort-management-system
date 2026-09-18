@@ -1,78 +1,85 @@
-import { ArrowRight, Sparkles } from "lucide-react"
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-
-import heroImage from "@/assets/hero.png"
 import { Button } from "@/components/ui/button"
-
 
 function Hero() {
   const navigate = useNavigate()
 
   return (
-    <section className="relative isolate min-h-[78vh] overflow-hidden sm:min-h-[84vh]">
-      {/* Background image */}
-      <img
-        src={heroImage}
-        alt="Paradise Resort"
-        className="absolute inset-0 h-full w-full object-cover"
+    <section className="relative z-10 w-full h-[100vh] min-h-[600px] flex items-center justify-center pt-20">
+      {/* Background Image - Using a stable Unsplash image for a luxury resort */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: "url('https://images.unsplash.com/photo-1542314831-c53cd3816002?auto=format&fit=crop&q=80&w=2000')"
+        }}
+        aria-hidden="true"
       />
+      {/* Elegant dark overlay for text readability */}
+      <div className="absolute inset-0 bg-black/40" aria-hidden="true" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/20" aria-hidden="true" />
 
-      {/* Layered overlay for readability */}
-      <div className="absolute inset-0 bg-black/45" />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/20 to-black/65" />
+      {/* Hero Content */}
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 text-center text-white flex flex-col items-center justify-center">
+        <span className="text-sm font-semibold tracking-[0.2em] uppercase text-white/90 mb-6 drop-shadow-sm">
+          A Place To Slow Down
+        </span>
+        <h1 className="text-5xl sm:text-6xl md:text-7xl font-semibold tracking-tight mb-6 drop-shadow-md">
+          Your Escape <br className="hidden sm:block" /> Starts Here
+        </h1>
+        <p className="text-lg sm:text-xl font-light text-white/90 max-w-2xl mx-auto mb-10 drop-shadow-sm">
+          Luxury stays. Unforgettable experiences.
+        </p>
 
-      {/* Hero content */}
-      <div className="relative z-10 mx-auto flex min-h-[78vh] max-w-7xl items-center justify-center px-5 py-20 text-center text-white sm:min-h-[84vh] sm:px-6 sm:py-24">
-        <div className="max-w-4xl">
-          {/* Eyebrow */}
-          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-xs font-medium uppercase tracking-[0.22em] backdrop-blur-md sm:text-sm">
-            <Sparkles className="h-4 w-4" />
-            Welcome to Paradise
+        <Button
+          onClick={() => navigate("/rooms")}
+          className="bg-white text-black hover:bg-white/90 px-8 py-6 text-sm uppercase tracking-widest font-medium rounded-sm transition-all duration-300"
+        >
+          Explore Rooms
+        </Button>
+      </div>
+
+      {/* Floating Booking Widget */}
+      <div className="absolute bottom-0 left-0 right-0 z-20 translate-y-1/2 px-4 sm:px-6">
+        <div className="max-w-5xl mx-auto bg-white/95 backdrop-blur-md rounded-md shadow-2xl p-4 sm:p-6 lg:p-8 flex flex-col lg:flex-row items-center gap-4 lg:gap-8 border border-border">
+          <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 divide-y lg:divide-y-0 lg:divide-x divide-border/60">
+            {/* Where */}
+            <div className="flex flex-col pt-4 lg:pt-0 lg:px-4 first:pt-0 first:px-0">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Where</label>
+              <span className="text-sm font-medium text-foreground">Paradise Resort</span>
+            </div>
+
+            {/* Check-in */}
+            <div className="flex flex-col pt-4 lg:pt-0 lg:px-4">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Check-in</label>
+              <button type="button" className="text-left text-sm font-medium text-foreground/60 hover:text-foreground transition-colors">Select date</button>
+            </div>
+
+            {/* Check-out */}
+            <div className="flex flex-col pt-4 lg:pt-0 lg:px-4">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Check-out</label>
+              <button type="button" className="text-left text-sm font-medium text-foreground/60 hover:text-foreground transition-colors">Select date</button>
+            </div>
+
+            {/* Guests */}
+            <div className="flex flex-col pt-4 lg:pt-0 lg:px-4">
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Guests</label>
+              <button type="button" className="text-left text-sm font-medium text-foreground/60 hover:text-foreground transition-colors">2 guests</button>
+            </div>
           </div>
 
-          {/* Heading */}
-          <h1 className="text-balance text-4xl font-bold leading-[1.08] tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">
-            Escape to Paradise
-          </h1>
-
-          {/* Description */}
-          <p className="mx-auto mt-6 max-w-2xl text-pretty text-base leading-7 text-white/85 sm:mt-7 sm:text-lg sm:leading-8 md:text-xl">
-            Relax, unwind, and experience an unforgettable stay surrounded by
-            comfort and nature.
-          </p>
-
-          {/* CTA */}
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:mt-10 sm:flex-row">
+          <div className="w-full lg:w-auto mt-4 lg:mt-0">
             <Button
               onClick={() => navigate("/booking")}
-              className="min-h-12 w-full rounded-xl px-7 text-base shadow-lg transition-transform duration-300 hover:-translate-y-0.5 sm:w-auto"
+              className="w-full lg:w-auto px-8 py-6 uppercase tracking-widest text-xs font-semibold rounded-sm bg-primary hover:bg-primary/90 text-primary-foreground"
             >
-              Book Your Stay
-              <ArrowRight className="ml-2 h-4 w-4" />
+              Search Availability
             </Button>
-
-            <Button
-              variant="outline"
-              onClick={() => navigate("/rooms")}
-              className="min-h-12 w-full rounded-xl border-white/40 bg-white/10 px-7 text-base text-white backdrop-blur-sm transition-all duration-300 hover:bg-white hover:text-black sm:w-auto"
-            >
-              Explore Rooms
-            </Button>
-          </div>
-
-          {/* Trust-style details */}
-          <div className="mx-auto mt-10 flex max-w-xl flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/75">
-            <span>Peaceful surroundings</span>
-            <span className="hidden sm:inline">•</span>
-            <span>Comfortable stays</span>
-            <span className="hidden sm:inline">•</span>
-            <span>24/7 support</span>
           </div>
         </div>
       </div>
     </section>
   )
 }
-
 
 export default Hero

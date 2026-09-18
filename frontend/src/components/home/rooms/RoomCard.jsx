@@ -1,95 +1,66 @@
-import {
-  ArrowRight,
-  Users,
-} from "lucide-react"
+import { ArrowRight, Users } from "lucide-react"
 import { Link } from "react-router-dom"
-
-import { Button } from "@/components/ui/button"
 import { roomImages } from "@/data/roomImages"
-
+import { formatCurrency } from "@/utils/currency"
 
 function RoomCard({ room }) {
   const image = roomImages[room.image]
-
-  const formattedPrice =
-    Number(room.price).toLocaleString("en-IN")
+  const formattedPrice = formatCurrency(room.price)
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl">
+    <article className="group flex h-full flex-col overflow-hidden rounded-sm border border-border/60 bg-card transition-all duration-500 hover:shadow-xl hover:border-border">
 
       {/* ROOM IMAGE */}
       <Link
         to={`/rooms/${room.id}`}
-        className="block overflow-hidden"
+        className="block overflow-hidden relative"
       >
-        <div className="relative overflow-hidden">
+        <div className="relative overflow-hidden aspect-[4/3] bg-muted">
           <img
-            src={image}
+            src={image || "https://images.unsplash.com/photo-1590490359683-658d3d23f972?auto=format&fit=crop&q=80&w=1000"}
             alt={room.name}
-            className="h-64 w-full object-cover transition duration-700 group-hover:scale-105 sm:h-72"
+            className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-105"
           />
-
-          {/* Image overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent opacity-70" />
-
-          {/* Room status */}
-          <div className="absolute left-4 top-4 rounded-full border border-white/25 bg-black/35 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-md">
-            Paradise Resort
-          </div>
+          {/* Subtle overlay */}
+          <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-500" />
         </div>
       </Link>
 
       {/* ROOM CONTENT */}
-      <div className="flex flex-1 flex-col p-5 sm:p-6">
+      <div className="flex flex-1 flex-col p-6 sm:p-8">
 
-        <h3 className="break-words text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+        <h3 className="text-2xl font-medium tracking-tight text-foreground mb-3">
           {room.name}
         </h3>
 
-        <p className="mt-3 line-clamp-3 text-sm leading-6 text-muted-foreground sm:text-base sm:leading-7">
+        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
+          <Users className="h-4 w-4 stroke-[1.5]" />
+          <span>Up to {room.guests} guests</span>
+        </div>
+
+        <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground font-light mb-8">
           {room.description}
         </p>
 
-        {/* CAPACITY */}
-        <div className="mt-5 flex items-center gap-2 text-sm text-muted-foreground">
-          <Users className="h-4 w-4" />
-
-          <span>
-            Up to {room.guests} guests
-          </span>
-        </div>
-
         {/* PRICE + CTA */}
-        <div className="mt-auto flex flex-col gap-5 border-t border-border pt-6 sm:flex-row sm:items-end sm:justify-between">
-
+        <div className="mt-auto flex items-center justify-between border-t border-border/50 pt-6">
           <div>
-            <p className="text-2xl font-bold tracking-tight text-foreground">
-              ₹{formattedPrice}
-            </p>
-
-            <p className="text-sm text-muted-foreground">
-              per night
+            <p className="text-sm text-muted-foreground font-light mb-1">Starting from</p>
+            <p className="text-xl font-medium tracking-tight text-foreground">
+              {formattedPrice} <span className="text-sm text-muted-foreground font-light">/ night</span>
             </p>
           </div>
 
           <Link
             to={`/rooms/${room.id}`}
-            className="w-full sm:w-auto"
+            className="inline-flex items-center justify-center p-3 rounded-full bg-secondary/50 text-foreground transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground"
           >
-            <Button
-              variant="outline"
-              className="min-h-11 w-full rounded-xl transition-all duration-300 group-hover:border-primary group-hover:text-primary sm:w-auto"
-            >
-              View Room
-              <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-            </Button>
+            <ArrowRight className="h-5 w-5 transition-transform duration-300 group-hover:-rotate-45" />
           </Link>
-
         </div>
       </div>
     </article>
   )
 }
-
 
 export default RoomCard

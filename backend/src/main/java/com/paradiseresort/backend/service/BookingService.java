@@ -19,21 +19,26 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+import com.paradiseresort.backend.entity.NotificationType;
+
 @Service
 public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final RoomRepository roomRepository;
     private final PaymentService paymentService;
+    private final NotificationService notificationService;
 
     public BookingService(
             BookingRepository bookingRepository,
             RoomRepository roomRepository,
-            PaymentService paymentService
+            PaymentService paymentService,
+            NotificationService notificationService
     ) {
         this.bookingRepository = bookingRepository;
         this.roomRepository = roomRepository;
         this.paymentService = paymentService;
+        this.notificationService = notificationService;
     }
 
     /*
@@ -510,6 +515,12 @@ public class BookingService {
                 bookingRepository.save(
                         booking
                 );
+
+        if (newStatus == BookingStatus.CONFIRMED) {
+            notificationService.createNotification(savedBooking, NotificationType.BOOKING_CONFIRMED);
+        } else if (newStatus == BookingStatus.CANCELLED) {
+            notificationService.createNotification(savedBooking, NotificationType.BOOKING_CANCELLED, false);
+        }
 
         return BookingResponse.fromEntity(
                 savedBooking

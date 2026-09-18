@@ -130,9 +130,14 @@ public class RoomStateService {
              * Maintenance resolved:
              *
              * MAINTENANCE -> AVAILABLE
+             *
+             * Maintenance resolved but needs housekeeping:
+             *
+             * MAINTENANCE -> CLEANING
              */
             case MAINTENANCE ->
-                    targetStatus == RoomStatus.AVAILABLE;
+                    targetStatus == RoomStatus.AVAILABLE
+                    || targetStatus == RoomStatus.CLEANING;
         };
 
         if (!allowed) {

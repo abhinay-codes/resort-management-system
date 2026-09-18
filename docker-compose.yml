@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: resort_db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-resort_management}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-postgres-password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-resort_management}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: resort_backend
+    environment:
+      - DB_URL=jdbc:postgresql://db:5432/${POSTGRES_DB:-resort_management}
+      - DB_USERNAME=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-change-me-postgres-password}
+      - JWT_SECRET=${JWT_SECRET:-fallback_secret_for_local_only_do_not_use_in_prod}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@paradiseresort.com}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-change-me-to-a-secure-admin-password}
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
+    container_name: resort_frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+

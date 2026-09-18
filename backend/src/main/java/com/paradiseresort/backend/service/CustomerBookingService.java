@@ -17,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import com.paradiseresort.backend.entity.NotificationType;
+
 @Service
 public class CustomerBookingService {
 
@@ -25,19 +27,22 @@ public class CustomerBookingService {
     private final AppUserRepository appUserRepository;
     private final PaymentRepository paymentRepository;
     private final PaymentService paymentService;
+    private final NotificationService notificationService;
 
     public CustomerBookingService(
             BookingService bookingService,
             BookingRepository bookingRepository,
             AppUserRepository appUserRepository,
             PaymentRepository paymentRepository,
-            PaymentService paymentService
+            PaymentService paymentService,
+            NotificationService notificationService
     ) {
         this.bookingService = bookingService;
         this.bookingRepository = bookingRepository;
         this.appUserRepository = appUserRepository;
         this.paymentRepository = paymentRepository;
         this.paymentService = paymentService;
+        this.notificationService = notificationService;
     }
 
     /*
@@ -90,6 +95,11 @@ public class CustomerBookingService {
                 bookingRepository.save(
                         booking
                 );
+
+        notificationService.createNotification(
+                savedBooking,
+                NotificationType.BOOKING_CREATED
+        );
 
         return CustomerBookingResponse.fromEntity(
                 savedBooking
@@ -330,6 +340,12 @@ public class CustomerBookingService {
                 bookingRepository.save(
                         booking
                 );
+
+        notificationService.createNotification(
+                savedBooking,
+                NotificationType.BOOKING_CANCELLED,
+                false
+        );
 
         return CustomerBookingResponse.fromEntity(
                 savedBooking

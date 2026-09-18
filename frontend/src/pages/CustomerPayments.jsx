@@ -11,6 +11,10 @@ import {
 } from "lucide-react"
 
 import { getPaymentHistory } from "@/services/payment/paymentService"
+import { PageHeader } from "@/components/ui/PageHeader"
+import { StatusBadge } from "@/components/ui/StatusBadge"
+import { EmptyState } from "@/components/ui/EmptyState"
+import { Button } from "@/components/ui/button"
 
 function formatAmount(amount) {
   if (amount === null || amount === undefined) {
@@ -24,64 +28,14 @@ function formatAmount(amount) {
 }
 
 function formatDate(value) {
-  if (!value) {
-    return "—"
-  }
-
+  if (!value) return "—"
   const date = new Date(value)
 
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
+  if (Number.isNaN(date.getTime())) return value
   return date.toLocaleString("en-IN", {
     dateStyle: "medium",
     timeStyle: "short",
   })
-}
-
-function StatusBadge({ status }) {
-  const config = {
-    SUCCESS: {
-      label: "Success",
-      icon: CheckCircle2,
-      className:
-        "border-emerald-200 bg-emerald-50 text-emerald-700",
-    },
-
-    FAILED: {
-      label: "Failed",
-      icon: XCircle,
-      className:
-        "border-red-200 bg-red-50 text-red-700",
-    },
-
-    PENDING: {
-      label: "Pending",
-      icon: Clock3,
-      className:
-        "border-blue-200 bg-blue-50 text-blue-700",
-    },
-
-    REFUNDED: {
-      label: "Refunded",
-      icon: RefreshCcw,
-      className:
-        "border-amber-200 bg-amber-50 text-amber-700",
-    },
-  }
-
-  const current = config[status] || config.PENDING
-  const Icon = current.icon
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${current.className}`}
-    >
-      <Icon className="h-3.5 w-3.5" />
-      {current.label}
-    </span>
-  )
 }
 
 export default function CustomerPayments() {
@@ -96,13 +50,9 @@ export default function CustomerPayments() {
         setError("")
 
         const data = await getPaymentHistory()
-
         setPayments(Array.isArray(data) ? data : [])
       } catch (err) {
-        setError(
-          err?.message ||
-            "Unable to load payment history."
-        )
+        setError(err?.message || "Unable to load payment history.")
       } finally {
         setLoading(false)
       }
@@ -113,7 +63,7 @@ export default function CustomerPayments() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-6xl px-6 py-10">
+      <div className="mx-auto max-w-5xl px-6 py-16">
 
         <Link
           to="/customer"
@@ -123,149 +73,100 @@ export default function CustomerPayments() {
           Back to Dashboard
         </Link>
 
-        <div className="mb-8">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-slate-900 p-3">
-              <CreditCard className="h-5 w-5 text-white" />
-            </div>
-
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-                Payment History
-              </h1>
-
-              <p className="mt-1 text-slate-600">
-                View your resort booking payments.
-              </p>
-            </div>
-          </div>
-        </div>
+        <PageHeader
+          eyebrow="Financials"
+          title="Payment History"
+          description="View your resort booking payments."
+        />
 
         {loading && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-            <div className="flex items-center justify-center gap-3 text-slate-600">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Loading payments...
-            </div>
+          <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-slate-400" />
+            <p className="mt-4 text-slate-500">Loading payments...</p>
           </div>
         )}
 
         {!loading && error && (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
-            <h2 className="font-semibold text-red-800">
-              Unable to load payments
-            </h2>
-
-            <p className="mt-1 text-sm text-red-700">
-              {error}
-            </p>
+          <div className="rounded-3xl border border-red-200 bg-red-50 p-8 text-center shadow-sm">
+            <h2 className="font-semibold text-red-800 text-lg">Unable to load payments</h2>
+            <p className="mt-2 text-red-700">{error}</p>
           </div>
         )}
 
-        {!loading &&
-          !error &&
-          payments.length === 0 && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-              <CreditCard className="mx-auto h-10 w-10 text-slate-400" />
-
-              <h2 className="mt-4 text-lg font-semibold text-slate-900">
-                No payments yet
-              </h2>
-
-              <p className="mt-2 text-sm text-slate-500">
-                Payments for your bookings will appear here.
-              </p>
-
-              <Link
-                to="/rooms"
-                className="mt-6 inline-flex rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-              >
-                Browse Rooms
+        {!loading && !error && payments.length === 0 && (
+          <EmptyState
+            icon={CreditCard}
+            title="No payments yet"
+            description="Payments for your bookings will appear here."
+            action={
+              <Link to="/rooms">
+                <Button>Browse Rooms</Button>
               </Link>
-            </div>
-          )}
+            }
+          />
+        )}
 
-        {!loading &&
-          !error &&
-          payments.length > 0 && (
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[800px]">
-                  <thead className="border-b border-slate-200 bg-slate-50">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Payment
-                      </th>
-
-                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Booking
-                      </th>
-
-                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Amount
-                      </th>
-
-                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Method
-                      </th>
-
-                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Status
-                      </th>
-
-                      <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Date
-                      </th>
+        {!loading && !error && payments.length > 0 && (
+          <>
+            {/* Desktop View */}
+            <div className="hidden md:block overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+              <table className="w-full text-left">
+                <thead className="border-b border-slate-100 bg-slate-50/50">
+                  <tr>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Payment</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Booking</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Amount</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Method</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Date</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {payments.map((payment) => (
+                    <tr key={payment.id} className="transition hover:bg-slate-50">
+                      <td className="px-6 py-5">
+                        <p className="font-semibold text-slate-900">#{payment.id}</p>
+                        <p className="text-xs text-slate-500">{payment.paymentReference || "—"}</p>
+                      </td>
+                      <td className="px-6 py-5">
+                        <Link to={`/customer/bookings/${payment.bookingId}`} className="font-medium text-emerald-600 hover:text-emerald-700">
+                          #{payment.bookingId}
+                        </Link>
+                      </td>
+                      <td className="px-6 py-5 font-medium text-slate-900">{formatAmount(payment.amount)}</td>
+                      <td className="px-6 py-5 text-sm text-slate-600">{payment.paymentMethod || "—"}</td>
+                      <td className="px-6 py-5 text-sm text-slate-600">{formatDate(payment.createdAt)}</td>
+                      <td className="px-6 py-5 text-right">
+                        <StatusBadge status={payment.status} />
+                      </td>
                     </tr>
-                  </thead>
-
-                  <tbody className="divide-y divide-slate-100">
-                    {payments.map((payment) => (
-                      <tr
-                        key={payment.id}
-                        className="transition hover:bg-slate-50"
-                      >
-                        <td className="px-6 py-5">
-                          <p className="font-semibold text-slate-900">
-                            #{payment.id}
-                          </p>
-
-                          <p className="mt-1 text-xs text-slate-500">
-                            {payment.paymentReference || "—"}
-                          </p>
-                        </td>
-
-                        <td className="px-6 py-5">
-                          <Link
-                            to={`/customer/bookings/${payment.bookingId}`}
-                            className="font-medium text-slate-900 hover:underline"
-                          >
-                            Booking #{payment.bookingId}
-                          </Link>
-                        </td>
-
-                        <td className="px-6 py-5 font-semibold text-slate-900">
-                          {formatAmount(payment.amount)}
-                        </td>
-
-                        <td className="px-6 py-5 text-sm text-slate-600">
-                          {payment.paymentMethod || "—"}
-                        </td>
-
-                        <td className="px-6 py-5">
-                          <StatusBadge status={payment.status} />
-                        </td>
-
-                        <td className="px-6 py-5 text-sm text-slate-600">
-                          {formatDate(payment.createdAt)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
+
+            {/* Mobile View */}
+            <div className="md:hidden space-y-4">
+              {payments.map((payment) => (
+                <div key={payment.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <p className="font-semibold text-slate-900">#{payment.id}</p>
+                      <p className="text-xs text-slate-500">{formatDate(payment.createdAt)}</p>
+                    </div>
+                    <StatusBadge status={payment.status} />
+                  </div>
+                  <div className="flex justify-between items-center mt-4 pt-4 border-t border-slate-100">
+                    <p className="font-semibold text-lg text-slate-900">{formatAmount(payment.amount)}</p>
+                    <Link to={`/customer/bookings/${payment.bookingId}`} className="text-sm font-medium text-emerald-600 hover:text-emerald-700">
+                      Booking #{payment.bookingId}
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

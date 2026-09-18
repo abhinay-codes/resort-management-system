@@ -18,6 +18,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import com.paradiseresort.backend.entity.NotificationType;
+
 @Service
 public class PaymentService {
 
@@ -26,15 +28,18 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final BookingRepository bookingRepository;
     private final PaymentGateway paymentGateway;
+    private final NotificationService notificationService;
 
     public PaymentService(
             PaymentRepository paymentRepository,
             BookingRepository bookingRepository,
-            PaymentGateway paymentGateway
+            PaymentGateway paymentGateway,
+            NotificationService notificationService
     ) {
         this.paymentRepository = paymentRepository;
         this.bookingRepository = bookingRepository;
         this.paymentGateway = paymentGateway;
+        this.notificationService = notificationService;
     }
 
     /*
@@ -617,6 +622,10 @@ public PaymentResponse getCustomerPaymentById(
         paymentRepository.save(payment);
         bookingRepository.save(booking);
 
+        if (request.success()) {
+            notificationService.createNotification(booking, NotificationType.BOOKING_CONFIRMED);
+        }
+
         return toResponse(payment);
     }
 
@@ -823,6 +832,12 @@ public PaymentResponse getCustomerPaymentById(
 
             bookingRepository.save(
                     booking
+            );
+
+            notificationService.createNotification(
+                    booking,
+                    NotificationType.BOOKING_CANCELLED,
+                    true
             );
         }
 
@@ -1056,6 +1071,13 @@ public BigDecimal getSuccessfulRevenue() {
         bookingRepository.save(
                 booking
         );
+
+        if (success) {
+            notificationService.createNotification(
+                    booking,
+                    NotificationType.BOOKING_CONFIRMED
+            );
+        }
 
         return toResponse(
                 payment
