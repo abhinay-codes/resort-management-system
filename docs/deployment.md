@@ -97,11 +97,14 @@ By default, GitHub Packages published via Actions might be set to `Private`. To 
 
 ### Current Status
 - **Local Development:** Developers use `docker compose up --build`. The local Nginx container reverse-proxies `/api/*` traffic directly to the backend.
-- **Image Publishing:** The GHCR workflow is prepared and active, publishing tagged images to the registry.
+- **Image Publishing:** The GHCR GitHub Actions workflow is configured and publishes tagged backend and frontend images to the registry.
 
-### Planned Status
-- **Cloud Deployment (Vercel & Render):** 
-  - The frontend is planned for deployment on Vercel. 
-  - To route API traffic correctly without cross-origin issues or baked-in localhost URLs, a `vercel.json` file is included. 
-  - Before deploying to Vercel, the `<YOUR_RENDER_BACKEND_URL>` placeholder in `frontend/vercel.json` must be manually replaced with the live backend URL. Vercel will then proxy all `/api/*` requests to the Render backend, perfectly mimicking the local Nginx architecture.
-  - Cloud deployment is not yet complete.
+## Cloud Deployment
+
+- **Frontend:** Deployed on Vercel.
+- **Backend:** Deployed on Render using the published GHCR Docker image.
+- **Database:** Deployed on Neon PostgreSQL.
+- **API Routing:** Vercel rewrites `/api/*` requests to the Render backend using `frontend/vercel.json`.
+- **Live Website:** https://resort-management-system-nine.vercel.app
+- **Deployment Status:** Complete and verified through the live customer flow.
+- **Note:** Render Free may spin down after inactivity, so the first request after inactivity can take longer.
