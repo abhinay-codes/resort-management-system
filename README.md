@@ -2,6 +2,13 @@
 
 The Resort Management System is a comprehensive, full-stack application designed to streamline the operations of a luxury resort or hotel. It provides an intuitive interface for customers to browse and book rooms, while giving employees and administrators the tools they need to manage reservations, process simulated payments, handle check-ins and check-outs, and track operational tasks like housekeeping and maintenance.
 
+## 🌐 Live Demo
+
+👉 https://resort-management-system-nine.vercel.app
+
+> Demo deployment using Vercel, Render, and Neon PostgreSQL.
+> Payments are simulated for demonstration purposes.
+
 ## Documentation
 
 For an in-depth understanding of the system, please refer to the detailed technical documentation:
